@@ -12,7 +12,16 @@ const layerStateChange = {
     open:   '<LayerStateChange>',
     close:  '</LayerStateChange>'
 }
-
+/**
+ * 
+ * @param {string} ppwlFilename 
+ * @returns {string}
+ */
+ const ppwlAsset = function(ppwlFilename){
+  let temp = '<Asset><Media Name="' + ppwlFilename + '">';
+  temp += '</Media></Asset>';
+  return temp;
+}
 /**
  * 
  * @param {string} triggerId 
@@ -123,4 +132,90 @@ function createPageXML(xmlString, triggerId, playNow, timecode){
   return tempXML;
 }
 
-module.exports = {root, setLayerState, doTrigger, layerStateChange, layer, state, source, systemTrigger, ppwgToAsset, createPageXML}
+/**
+ * 
+ * @param {string} ppwlFilename 
+ * @param {string} trigger 
+ * @param {boolean} playNow
+ * @param {string} timecode
+ * @returns {string}
+*/
+function createPpwlXML(ppwlFilename, triggerId, playNow, timecode){
+  /**
+   * @type {string}
+   */
+  var tempXML;
+  tempXML = root.open + setLayerState.open
+  tempXML += doTrigger(triggerId, playNow, timecode);
+  tempXML += layerStateChange.open;
+  tempXML += layer('Program', "V", '2');
+  tempXML += state('true').open
+  tempXML += ppwlAsset(ppwlFilename);
+  tempXML += state().close; 
+  tempXML += layerStateChange.close;
+  tempXML += setLayerState.close; 
+  tempXML += root.close;
+
+  return tempXML;
+}
+
+/**
+ * 
+ * @param {string} clientId 
+ * @param {string} playerId 
+*/
+function attachMedia(clientId, playerId){
+  var temp = {}
+  temp.open = '<AttachMedia ClientID="' + clientId + '" Device="Clip" Category="Timeline" Level="VA" PlayerID="' + playerId +'">';
+  temp.close = '</AttachMedia>'
+  return temp
+}
+/**
+ * 
+ * @param {string} fileName 
+ * @param {string} loop 
+ * @param {string} som
+ * @param {string} eom
+ * @returns {string}
+*/
+function media(fileName, loop, som, eom){
+
+  var temp = '<Media Name="' + fileName + '" Loop="' + loop + '"';
+  if (som != null && eom != null){
+    temp += ' SOM="' + som + '" EOM="' + eom + '"';
+  }
+  temp += ' />'
+
+  return temp
+}
+/**
+ * 
+ * @param {string} triggerId 
+ * @returns {string}
+*/
+function deferTrigger(triggerId){
+  return '<Deferral><DeferToSystemTrigger TriggerID="' + triggerId + '"/></Deferral>';
+}
+
+function deferTriggerTimecode(timecode){
+  return '<Deferral><DeferToTimecode Timecode="' + timecode + '"/></Deferral>';
+}
+/**
+ * 
+ * @param {string} clientId 
+ * @param {string} level 
+ * @param {string} speed 
+ * @param {string} playerId 
+ * @returns {{open: string, close: string}}
+*/
+function playMedia(clientId, level, speed, playerId){
+
+  var temp = {};
+  temp.open = '<PlayMedia ClientID="' + clientId + '" Device="Clip" Category="Timeline" Level="' + level + '" Speed="' + speed + '" PlayerID="' + playerId + '">';
+  temp.close = '</PlayMedia>';
+  
+  return temp
+}
+
+
+module.exports = {root, setLayerState, doTrigger, layerStateChange, layer, state, source, systemTrigger, ppwgToAsset, createPageXML, createPpwlXML, attachMedia, media, playMedia}
