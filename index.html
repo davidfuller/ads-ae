@@ -7,10 +7,12 @@
     <script defer src="render.js"></script>
 </head>
 <body>
-    <h1>Hello World!</h1>
+    <h1 id="clock"></h1>
     <button onclick="showBlack()">Playout Black</button>
     <button onclick="showTestSignal()">Playout Test Signal</button>
-    <button onclick="playoutPageWorkfile()">Playout Page</button>
+    <input type="text" class="pageNo" placeholder="Enter Page Number">
+    <button onclick="playoutPageNumber()">Playout Page No</button>
+    <button onclick="playoutPageNumberOverTest()">Playout Over Test</button>
 
     <h1 id="status"></h1>
     
