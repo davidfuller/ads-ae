@@ -1,5 +1,5 @@
 const xmlStrings = require('./xmlStrings.js');
-
+const clientId = 'MuVi2';
 
 /**
  * 
@@ -28,7 +28,7 @@ const xmlStrings = require('./xmlStrings.js');
     tempXML += xmlStrings.setLayerState.close;
     tempXML += xmlStrings.root.close;
   
-    return tempXML
+    return tempXML;
   }
 
 /**
@@ -45,6 +45,45 @@ var tempXML;
 
     return tempXML;
 }
+/**
+ * 
+ * @param {BackgroundMedia} myMedia 
+ * @param {string} loop 
+ * @returns {string}
+*/
+function attachMedia(myMedia, loop){
+  var tempXML;
+ 
+  tempXML = xmlStrings.root.open;
+  var attach = xmlStrings.attachMedia(clientId, myMedia.playerId);
+  tempXML += attach.open;
+  tempXML += xmlStrings.media(myMedia.filename, loop, myMedia.som, myMedia.eom);
+  tempXML += attach.close;
+  tempXML += xmlStrings.root.close;
+ 
+  return tempXML;
+ }
+ 
+/**
+ * 
+ * @param {string} triggerId 
+ * @param {string} playerId 
+ * @param {boolean} playNow
+ * @param {string} timecode
+ * @returns {string}
+*/
+function mediaPlay(triggerId, playerId, playNow, timecode){
+  var tempXML;
+  
+  tempXML = xmlStrings.root.open;
+  var tempPlayMedia = xmlStrings.playMedia(clientId, 'VA', '100', playerId);
+  tempXML += tempPlayMedia.open;
+  tempXML += xmlStrings.doTrigger(triggerId, playNow, timecode);
+  tempXML += tempPlayMedia.close;
+  tempXML += xmlStrings.root.close;
+
+  return tempXML
+}
 
 
-  module.exports = {setLayerStates, triggerPlay}
+  module.exports = {setLayerStates, triggerPlay, attachMedia, mediaPlay}
