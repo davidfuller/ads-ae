@@ -40,7 +40,7 @@ async function showTestSignal(){
     ipcRenderer.send('sendMessage','Showing Test Signal');
 }
 
-async function playoutPageWorkfile(){
+async function playoutPageWorkfileOverTest(){
     //Playout Page and Background from Workfile
     let temp = await command.playOutOverTest(workDetailsFilenameUNC, currentConfig);      
     console.log(temp);
@@ -48,5 +48,46 @@ async function playoutPageWorkfile(){
     theCommand = temp.theCommand;
     result = temp.result;
     */
-    ipcRenderer.send('sendMessage','Playing Out Page');
+    ipcRenderer.send('sendMessage','Playing Out Page Over Test');
 }
+async function playoutPageWorkfile(){
+  //Playout Page and Background from Workfile
+  let temp = await command.playOut(workDetailsFilenameUNC, currentConfig);      
+  console.log(temp);
+  /*
+  theCommand = temp.theCommand;
+  result = temp.result;
+  */
+  ipcRenderer.send('sendMessage','Playing Out Page');
+}
+
+async function playoutPageNumber(){
+  //Playout Page and Background from pageNumber
+  let pageNumber = document.querySelector(".pageNo").value
+  let temp = await command.playoutPageNumber(pageNumber, currentConfig);      
+  console.log(temp);
+  /*
+  theCommand = temp.theCommand;
+  result = temp.result;
+  */
+  ipcRenderer.send('sendMessage','Playing Out Page');
+}
+
+async function playoutPageNumberOverTest(){
+  //Playout Page from pageNumber over Test
+  let pageNumber = document.querySelector(".pageNo").value
+  let temp = await command.playoutPageNumberOverTest(pageNumber, currentConfig);      
+  console.log(temp);
+  /*
+  theCommand = temp.theCommand;
+  result = temp.result;
+  */
+  ipcRenderer.send('sendMessage','Playing Out Page');
+}
+
+function getTime(){
+  const theTime = new Date().toLocaleTimeString();
+  const clockTag = document.querySelector("#clock");
+  clockTag.innerText = theTime;
+}
+setInterval(getTime, 1000 );
