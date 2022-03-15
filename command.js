@@ -242,6 +242,7 @@ async function playOut(workDetailsFilenameUNC, currentConfig){
   }
   let pageStart = tc.timecodeAdd(timelineStart, myPageDetails.startTimecode);
   let playoutEnd = tc.timecodeAddSeconds(tc.timecodeAdd(timelineStart, myPageDetails.eom), 0);
+  theCommand.playoutEnd = playoutEnd;
   if (myPpwlDetails != undefined){
     for (const theDetail of myPpwlDetails){
       let theTimecode = tc.timecodeAdd(theDetail.timecode, timelineStart);
@@ -258,7 +259,8 @@ async function playOut(workDetailsFilenameUNC, currentConfig){
 async function playoutPageNumber(pageNumber, currentConfig){
   let pageDetails = getPage(pageNumber);
   if (pageDetails.pageNumber != '0'){
-    let temp = await playOut(pageDetails.pageFilename, currentConfig);      
+    let temp = await playOut(pageDetails.pageFilename, currentConfig);
+    temp.theCommand.pageNumber = pageDetails.pageNumber;  
     return temp;
   }
 }
