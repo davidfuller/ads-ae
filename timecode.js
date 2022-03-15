@@ -16,6 +16,11 @@ function timecodeGreaterThan(timecode1, timecode2){
   return frames1 > frames2
 }
 
+function timecodeSubtract(timecode1, timecode2){
+  return framesToTimecodeString(timecodeStringToFrames(timecode1) - timecodeStringToFrames(timecode2))
+}
+
+
 function timecodeStringToFrames(tc){
   let numberArray;
   let frames;
@@ -52,7 +57,8 @@ function framesToTimecodeString(frames){
 function nowAsTimecode(){
 
   const today = new Date();
-  return zeroPad(today.getHours(), 2) + ':' + zeroPad(today.getMinutes(), 2) + ':' + zeroPad(today.getSeconds(), 2) + ':00'
+  const frames = Math.floor(today.getMilliseconds()/40);
+  return zeroPad(today.getHours(), 2) + ':' + zeroPad(today.getMinutes(), 2) + ':' + zeroPad(today.getSeconds(), 2) + ':' + zeroPad(frames,2)
 }
 /**
  * 
@@ -63,4 +69,4 @@ function nowPlusTimecode(seconds){
   return timecodeAddSeconds(nowAsTimecode(), seconds);
 }
 
-module.exports = {timecodeAdd, timecodeAddSeconds, nowAsTimecode, nowPlusTimecode, timecodeGreaterThan}
+module.exports = {timecodeAdd, timecodeAddSeconds, nowAsTimecode, nowPlusTimecode, timecodeGreaterThan, timecodeSubtract}
