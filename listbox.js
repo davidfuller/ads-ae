@@ -1,76 +1,89 @@
-var x, i, j, l, ll, selElmnt, a, b, c;
+function fillListbox(){
+  let select = document.getElementById("pageChoice");
+  let options = ["David", "Diane", "Lilianna", "Fraja", "Bid Bid"];
+  
+  for(let i = 0; i < options.length; i++) {
+      let option = options[i];
+      var element = document.createElement("option");
+      element.textContent = option;
+      element.value = i+1;
+      select.appendChild(element);
+  }
+}
+
+fillListbox();
+
 /* Look for any elements with the class "page-select": */
-x = document.getElementsByClassName("page-select");
-l = x.length;
-for (i = 0; i < l; i++) {
-  selElmnt = x[i].getElementsByTagName("select")[0];
-  ll = selElmnt.length;
+let pageSelectElements = document.getElementsByClassName("page-select");
+let pageSelectElementsLength = pageSelectElements.length;
+for (let i = 0; i < pageSelectElementsLength; i++) {
+  let selectElements = pageSelectElements[i].getElementsByTagName("select")[0];
+  let selectElementsLength = selectElements.length;
   /* For each element, create a new DIV that will act as the selected item: */
-  a = document.createElement("DIV");
-  a.setAttribute("class", "select-selected");
-  a.innerHTML = selElmnt.options[selElmnt.selectedIndex].innerHTML;
-  x[i].appendChild(a);
+  let theDiv= document.createElement("DIV");
+  theDiv.setAttribute("class", "select-selected");
+  theDiv.innerHTML = selectElements.options[selectElements.selectedIndex].innerHTML;
+  pageSelectElements[i].appendChild(theDiv);
   /* For each element, create a new DIV that will contain the option list: */
-  b = document.createElement("DIV");
-  b.setAttribute("class", "select-items select-hide");
-  for (j = 1; j < ll; j++) {
+  let anotherDiv = document.createElement("DIV");
+  anotherDiv.setAttribute("class", "select-items select-hide");
+  for (let j = 1; j < selectElementsLength; j++) {
     /* For each option in the original select element,
     create a new DIV that will act as an option item: */
-    c = document.createElement("DIV");
-    c.innerHTML = selElmnt.options[j].innerHTML;
-    c.addEventListener("click", function(e) {
+    let optionDiv = document.createElement("DIV");
+    optionDiv.innerHTML = selectElements.options[j].innerHTML;
+    optionDiv.addEventListener("click", function(e) {
         /* When an item is clicked, update the original select box,
         and the selected item: */
-        var y, i, k, s, h, sl, yl;
-        s = this.parentNode.parentNode.getElementsByTagName("select")[0];
-        sl = s.length;
-        h = this.parentNode.previousSibling;
-        for (i = 0; i < sl; i++) {
-          if (s.options[i].innerHTML == this.innerHTML) {
-            s.selectedIndex = i;
-            h.innerHTML = this.innerHTML;
-            y = this.parentNode.getElementsByClassName("same-as-selected");
-            yl = y.length;
-            for (k = 0; k < yl; k++) {
-              y[k].removeAttribute("class");
+        let selectTags = this.parentNode.parentNode.getElementsByTagName("select")[0];
+        let selectTagsLength = selectTags.length;
+        let previousSib = this.parentNode.previousSibling;
+        for (let i = 0; i < selectTagsLength; i++) {
+          if (selectTags.options[i].innerHTML == this.innerHTML) {
+            selectTags.selectedIndex = i;
+            previousSib.innerHTML = this.innerHTML;
+            let sameAsSelecteds = this.parentNode.getElementsByClassName("same-as-selected");
+            let sameAsSelectedsLength = sameAsSelecteds.length;
+            for (let k = 0; k < sameAsSelectedsLength; k++) {
+              sameAsSelecteds[k].removeAttribute("class");
             }
             this.setAttribute("class", "same-as-selected");
             break;
           }
         }
-        h.click();
+        previousSib.click();
     });
-    b.appendChild(c);
+    anotherDiv.appendChild(optionDiv);
   }
-  x[i].appendChild(b);
-  a.addEventListener("click", function(e) {
+  pageSelectElements[i].appendChild(anotherDiv);
+  theDiv.addEventListener("click", function(theClick) {
     /* When the select box is clicked, close any other select boxes,
     and open/close the current select box: */
-    e.stopPropagation();
+    theClick.stopPropagation();
     closeAllSelect(this);
     this.nextSibling.classList.toggle("select-hide");
     this.classList.toggle("select-arrow-active");
   });
 }
 
-function closeAllSelect(elmnt) {
+function closeAllSelect(theElement) {
   /* A function that will close all select boxes in the document,
   except the current select box: */
-  var x, y, i, xl, yl, arrNo = [];
-  x = document.getElementsByClassName("select-items");
-  y = document.getElementsByClassName("select-selected");
-  xl = x.length;
-  yl = y.length;
-  for (i = 0; i < yl; i++) {
-    if (elmnt == y[i]) {
-      arrNo.push(i)
+  let arrowNumber = [];
+  let selectedItems = document.getElementsByClassName("select-items");
+  let selectSelecteds = document.getElementsByClassName("select-selected");
+  let selectedItemsLength = selectedItems.length;
+  let selectSelectedsLength = selectSelecteds.length;
+  for (let i = 0; i < selectSelectedsLength; i++) {
+    if (theElement == selectSelecteds[i]) {
+      arrowNumber.push(i)
     } else {
-      y[i].classList.remove("select-arrow-active");
+      selectSelecteds[i].classList.remove("select-arrow-active");
     }
   }
-  for (i = 0; i < xl; i++) {
-    if (arrNo.indexOf(i)) {
-      x[i].classList.add("select-hide");
+  for (let i = 0; i < selectedItemsLength; i++) {
+    if (arrowNumber.indexOf(i)) {
+      selectedItems[i].classList.add("select-hide");
     }
   }
 }
