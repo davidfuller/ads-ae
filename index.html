@@ -5,17 +5,37 @@
     <title>MuVi2 StreamMaster Generator</title>
     <link rel="stylesheet" href="style.css">
     <script defer src="render.js"></script>
+    <script defer src="listbox.js"></script>
 </head>
 <body>
     <h1 id="clock"></h1>
     <button onclick="showBlack()">Playout Black</button>
     <button onclick="showTestSignal()">Playout Test Signal</button>
-    <input type="text" class="pageNo" placeholder="Enter Page Number">
+    <input type="text" class="pageNo" placeholder="Enter Page Number" onchange="playoutPageNumber()">
     <button onclick="playoutPageNumber()">Playout Page No</button>
     <button onclick="playoutPageNumberOverTest()">Playout Over Test</button>
 
     <h1 id="status"></h1>
     
+    <label for="pages">Choose a page</label>
+    <button onclick="selectPage()">Select Page</button>
+    <div class="page-select" style="width:300px;">
+      <select name="pages" id="pageChoice">
+        <option value="0">Select page:</option>
+        <option value="1">Audi</option>
+        <option value="2">BMW</option>
+        <option value="3">Citroen</option>
+        <option value="4">Ford</option>
+        <option value="5">Honda</option>
+        <option value="6">Jaguar</option>
+        <option value="7">Land Rover</option>
+        <option value="8">Mercedes</option>
+        <option value="9">Mini</option>
+        <option value="10">Nissan</option>
+        <option value="11">Toyota</option>
+        <option value="12">Volvo</option>
+      </select> 
+    </div>
 
 </body>
 </html>
