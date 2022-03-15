@@ -1,4 +1,5 @@
 const ipcRenderer = require("electron").ipcRenderer;
+const tc = require("./timecode.js")
 const command = require("./command.js")
 
 const workDetailsFilenameUNC ='\\\\alpaca\\dropbox\\Development\\Node\\StreamMasterHelper\\JSON\\workDetails.json'
@@ -66,11 +67,10 @@ async function playoutPageNumber(){
   let pageNumber = document.querySelector(".pageNo").value
   let temp = await command.playoutPageNumber(pageNumber, currentConfig);      
   console.log(temp);
-  /*
-  theCommand = temp.theCommand;
-  result = temp.result;
-  */
-  ipcRenderer.send('sendMessage','Playing Out Page');
+  currentPlayoutDetails.startTimecode = temp.theCommand.timecodeStart;
+  currentPlayoutDetails.pageNumber = temp.theCommand.pageNumber;
+  currentPlayoutDetails.playoutEnd = temp.theCommand.playoutEnd;
+  ipcRenderer.send('sendMessage','Cueing Page ');
 }
 
 async function playoutPageNumberOverTest(){
@@ -78,6 +78,7 @@ async function playoutPageNumberOverTest(){
   let pageNumber = document.querySelector(".pageNo").value
   let temp = await command.playoutPageNumberOverTest(pageNumber, currentConfig);      
   console.log(temp);
+  
   /*
   theCommand = temp.theCommand;
   result = temp.result;
@@ -85,9 +86,38 @@ async function playoutPageNumberOverTest(){
   ipcRenderer.send('sendMessage','Playing Out Page');
 }
 
+function selectPage(){
+  var e = document.getElementById("pageChoice");
+  var value = e.options[e.selectedIndex].value;
+  var text = e.options[e.selectedIndex].text;
+  alert(text);
+}
+let currentPlayoutDetails = {}
+currentPlayoutDetails.startTimecode = ""
+
 function getTime(){
-  const theTime = new Date().toLocaleTimeString();
+  let theTime =tc.nowAsTimecode();
+  if (currentPlayoutDetails.startTimecode != ''){
+    let currentTime = tc.nowAsTimecode();
+    if (tc.timecodeGreaterThan(currentTime, currentPlayoutDetails.startTimecode)){
+      if (tc.timecodeGreaterThan(currentTime, currentPlayoutDetails.playoutEnd)){
+        theTime = currentTime
+        ipcRenderer.send('sendMessage','Idle');
+      } else {
+        theTime = tc.timecodeSubtract(currentTime, currentPlayoutDetails.startTimecode)
+        ipcRenderer.send('sendMessage','Playing Out Page ' + currentPlayoutDetails.pageNumber);  
+      }
+    } else {
+      theTime = tc.timecodeSubtract(currentPlayoutDetails.startTimecode, currentTime)
+      ipcRenderer.send('sendMessage','Cueing Page ' + currentPlayoutDetails.pageNumber);
+    }
+  }
   const clockTag = document.querySelector("#clock");
   clockTag.innerText = theTime;
 }
-setInterval(getTime, 1000 );
+setInterval(getTime, 40 );
+
+function textChanged(){
+  alert("Hello");
+}
+
