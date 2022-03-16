@@ -64,7 +64,11 @@ async function playoutPageWorkfile(){
 
 async function playoutPageNumber(){
   //Playout Page and Background from pageNumber
-  let pageNumber = document.querySelector(".pageNo").value
+  let pageNumber = document.querySelector(".pageNo").value;
+  await playoutPage(pageNumber);
+}
+
+async function playoutPage(pageNumber){
   let temp = await command.playoutPageNumber(pageNumber, currentConfig);      
   console.log(temp);
   currentPlayoutDetails.startTimecode = temp.theCommand.timecodeStart;
@@ -86,11 +90,21 @@ async function playoutPageNumberOverTest(){
   ipcRenderer.send('sendMessage','Playing Out Page');
 }
 
-function selectPage(){
+async function readThePages(){
+  ipcRenderer.send('sendMessage','Reading Pages');
+  await fillListbox();
+  ipcRenderer.send('sendMessage','Idle');
+
+  let pageBlock = document.getElementById("page-block");
+  pageBlock.style.display = "block";
+
+}
+
+async function selectPage(){
   var e = document.getElementById("pageChoice");
   var value = e.options[e.selectedIndex].value;
   var text = e.options[e.selectedIndex].text;
-  alert(text);
+  await playoutPage(value);
 }
 let currentPlayoutDetails = {}
 currentPlayoutDetails.startTimecode = ""
@@ -117,7 +131,5 @@ function getTime(){
 }
 setInterval(getTime, 40 );
 
-function textChanged(){
-  alert("Hello");
-}
+
 
