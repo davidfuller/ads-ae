@@ -8,22 +8,29 @@
     <script defer src="listbox.js"></script>
 </head>
 <body>
-    <h1 id="clock"></h1>
-    <button onclick="showBlack()">Playout Black</button>
-    <button onclick="showTestSignal()">Playout Test Signal</button>
-    <input type="text" class="pageNo" placeholder="Enter Page Number" onchange="playoutPageNumber()">
-    <button onclick="playoutPageNumber()">Playout Page No</button>
-    <button onclick="playoutPageNumberOverTest()">Playout Over Test</button>
+    <h1 id="clock"></h1><h1 id="status"></h1>
+    <div id="all-page-block">
+      <button onclick="readThePages()">Read Pages</button>
 
-    <h1 id="status"></h1>
-    
-    <label for="pages">Choose a page</label>
-    <button onclick="selectPage()">Select Page</button>
-    <div class="page-select" style="width:300px;">
-      <select name="pages" id="pageChoice">
-        <option value="0">Select page:</option>
-      </select> 
+      <div id="page-block" style="display:none">
+        <div class="page-select" style="width:300px;">
+          <select name="pages" id="pageChoice">
+            <option value="0">Select page:</option>
+          </select> 
+        </div>
+        <button onclick="selectPage()">Playout</button>
+      </div>
     </div>
+    <div id="the-rest">
+      <input type="text" class="pageNo" placeholder="Enter Page Number" onchange="playoutPageNumber()">
+      <button onclick="playoutPageNumber()">Playout Page No</button>
+      <button onclick="playoutPageNumberOverTest()">Playout Over Test</button>
+      <button onclick="showBlack()">Playout Black</button>
+      <button onclick="showTestSignal()">Playout Test Signal</button>
+    </div>
+      
+    
+    
 
 </body>
 </html>
