@@ -131,4 +131,38 @@ async function getServer(serverDetails){
   }
   return null;
 }
-module.exports = {findMyServer, getIPShare, findMyPath, readJson, readXML}
+
+/**
+ * 
+ * @param {object} serverDetails 
+ * @param {string} path 
+ * @returns {string[]}
+ */
+ async function readDir(serverDetails, path){
+  
+  let filenames = [];
+  let client = await getServer(serverDetails)
+  if (client != null){
+    try {
+      let exists = await client.exists(path);
+      if (exists){
+          let files = await client.readdir(path, {stats: true});
+          for (let file of files){
+            if (!file.isDirectory()){
+              filenames.push(file.name)
+            }
+          }
+          return filenames;
+      } else {
+        return null;
+      }
+    }
+    catch(err){
+      console.log(err)
+      return null;
+    }
+  } else {
+    return null;
+  }
+}
+module.exports = {findMyServer, getIPShare, findMyPath, readJson, readXML, readDir}
