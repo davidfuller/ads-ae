@@ -386,5 +386,28 @@ async function readPpwlDetails(filename){
   return thePpwlDetails
 }
 
+async function getPageNumberAndNameDetails(folderUNC){
+  let theFiles = await readDirectory(folderUNC);
+  let result = []
+  theFiles.sort();
+  let filteredFiles = theFiles.filter(theFile => theFile.match(/^Work_Details.*.json$/i));
+  for (const myFile of filteredFiles){
+    let myWorkDetails = await readWorkDetails(folderUNC + myFile);
+    let myPage ={}
+    myPage.txPageNumber = myWorkDetails.txPageNumber;
+    myPage.pageName = myWorkDetails.pageName;
+    result.push(myPage)
+  }
+  return result
+}
 
-module.exports = {playBlack, playTest, playOutOverTest, playOut, playoutPageNumber, playoutPageNumberOverTest}
+async function readDirectory(folderName){
+  let server = netSMB2.findMyServer(folderName);
+  server.ipShare = await netSMB2.getIPShare(server);
+  let path = netSMB2.findMyPath(folderName)
+  let files = await netSMB2.readDir(server, path);
+  return files
+}
+
+
+module.exports = {playBlack, playTest, playOutOverTest, playOut, playoutPageNumber, playoutPageNumberOverTest, getPageNumberAndNameDetails}
