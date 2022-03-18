@@ -8,6 +8,7 @@ const configFilename = '/Users/David/Dropbox/Development/Node/StreamMasterHelper
 
 const playoutSubDevice = 1;
 const renderSubDevice = 2;
+let pages =[];
 
 /**
  * @type {CurrentConfig}
@@ -69,18 +70,18 @@ async function playoutPageNumber(){
 }
 
 async function playoutPage(pageNumber){
+  ipcRenderer.send('sendMessage','Cueing Page ' + pageNumber);
   let temp = await command.playoutPageNumber(pageNumber, currentConfig);      
   console.log(temp);
   currentPlayoutDetails.startTimecode = temp.theCommand.timecodeStart;
   currentPlayoutDetails.pageNumber = temp.theCommand.pageNumber;
   currentPlayoutDetails.playoutEnd = temp.theCommand.playoutEnd;
-  ipcRenderer.send('sendMessage','Cueing Page ');
 }
 
 async function playoutPageNumberOverTest(){
   //Playout Page from pageNumber over Test
   let pageNumber = document.querySelector(".pageNo").value
-  let temp = await command.playoutPageNumberOverTest(pageNumber, currentConfig);      
+  let temp = await command.playoutPageNumberOverTest(pageNumber, currentConfig);     
   console.log(temp);
   
   /*
@@ -92,19 +93,40 @@ async function playoutPageNumberOverTest(){
 
 async function readThePages(){
   ipcRenderer.send('sendMessage','Reading Pages');
-  await fillListbox();
+  pages = await getThePages()
+  fillListbox(pages);
   ipcRenderer.send('sendMessage','Idle');
-
   let pageBlock = document.getElementById("page-block");
   pageBlock.style.display = "block";
+  let readPagesButton = document.getElementById("read-pages-btn");
+  readPagesButton.style.display = "none";
+}
 
+async function refreshPages(){
+  fillListbox(pages);
 }
 
 async function selectPage(){
+  let pageNumber = listboxPageNumber()
+  await playoutPage(pageNumber);
+}
+
+function listboxPageNumber(){
   var e = document.getElementById("pageChoice");
-  var value = e.options[e.selectedIndex].value;
-  var text = e.options[e.selectedIndex].text;
-  await playoutPage(value);
+  return e.options[e.selectedIndex].value;
+}
+
+const listbox = document.getElementById('pageChoice')
+
+listbox.addEventListener('keyup', testKey);
+ 
+async function testKey(e){
+  if (e.key == "Enter"){
+    await selectPage()
+  } else if (e.key == "ArrowUp" || e.key == "ArrowDown"){
+    await displayJpeg()
+    console.log(listboxPageNumber());
+  }
 }
 let currentPlayoutDetails = {}
 currentPlayoutDetails.startTimecode = ""
@@ -131,5 +153,88 @@ function getTime(){
 }
 setInterval(getTime, 40 );
 
+async function displayJpeg(){
+  console.log(pages)
+  let thePage = listboxPageNumber();
+  let filenameBase = findPageNumber(thePage).jpegFilenameBase;
+ 
+  let jpegNo = 0
+  let target = document.getElementById('my-jpeg');
+  let jpg64
+  do {
+    let jpegFilenameUNC = filenameBase + '_' + jpegNo + '.jpg';
+    jpg64 = await command.readJpeg(jpegFilenameUNC);
+    if (jpegNo == 0){
+      if (jpg64 != ''){
+        let image = '<img src="data:image/jpg;base64,' + jpg64 + '" ondblclick="playVideo()" />';
+        target.innerHTML = image;
+        let btn = document.getElementById("toggle-video-jpeg");
+        if (btn.style.display == "none"){
+          btn.style.display = "block";
+          btn.innerText = "Show Video";
+        }
+      } else {
+        target.innerHTML = "No Jpeg"
+      }
+    } else {
+      if (jpg64 == ''){
+        break;
+      } else {
+        let image = '<img src="data:image/jpg;base64,' + jpg64 + '" />';
+        target.insertAdjacentHTML('beforeend', image);
+      }
+    }
+    jpegNo += 1;
+  } while (jpg64 != '')
+  
+}
 
+function findPageNumber(pageNumber){
+  for(page of pages){
+    if (page.txPageNumber == pageNumber){
+      return page;
+    }
+  }
+  return null;
+}
+
+function toggleVideo(forceVideo){
+  let myVideo = document.getElementById("my-video");
+  let myJpeg = document.getElementById("my-jpeg");
+  let btn = document.getElementById("toggle-video-jpeg");
+  btn.style.display = "block";
+  if (forceVideo){
+    btn.innerText = "Show Jpeg";
+    myVideo.style.display = "block";
+    myJpeg.style.display = "none";
+  } else if (myVideo.style.display == "block"){
+    btn.innerText = "Show Video";
+    myVideo.style.display = "none";
+    myJpeg.style.display = "block";
+  } else {
+    btn.innerText = "Show Jpeg"
+    myVideo.style.display = "block";
+    myJpeg.style.display = "none";
+  }
+
+}
+
+async function playVideo(){
+  let pageNumber = listboxPageNumber();
+  let thePage = findPageNumber(pageNumber);
+  console.log(thePage);
+  let theFiles = await command.readDirectory(thePage.mp4Folder);
+  theFiles.sort();
+  console.log(theFiles);
+  for (theFile of theFiles){
+    if (theFile.includes(thePage.mp4FilePattern)){
+      console.log(theFile);
+      let videoNode = document.querySelector('video')
+      videoNode.src = thePage.mp4Folder + theFile;
+      toggleVideo(true);
+      break;
+    }
+  }
+  
+}
 
