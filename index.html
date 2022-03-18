@@ -10,25 +10,34 @@
 <body>
     <h1 id="clock"></h1><h1 id="status"></h1>
     <div id="all-page-block">
-      <button onclick="readThePages()">Read Pages</button>
+      <button id="read-pages-btn" style="display: block;" onclick="readThePages()">Read Pages</button>
 
-      <div id="page-block" style="display:none">
-        <div class="page-select" style="width:300px;">
-          <select name="pages" id="pageChoice">
-            <option value="0">Select page:</option>
+      <div id="page-block" style="display:none;">
+        <div class="page-select">
+          <input type="text" class="search" placeholder="Search..." oninput="refreshPages()" >  
+          <select name="pages" id="pageChoice" size="10" ondblclick="selectPage()" onclick="displayJpeg()">
           </select> 
         </div>
-        <button onclick="selectPage()">Playout</button>
+        <button id="list-playout" onclick="selectPage()">Playout</button>
+      </div>
+      <button id="toggle-video-jpeg" style="display: none;" onclick="toggleVideo()">Show Video</button>
+      <div id="my-jpeg" style="display: block;"></div>
+      <div id="my-video" style="display: none;">
+        <video controls autoplay>
+          <source src="" type="video/mp4">
+        </video>
       </div>
     </div>
+    
     <div id="the-rest">
-      <input type="text" class="pageNo" placeholder="Enter Page Number" onchange="playoutPageNumber()">
-      <button onclick="playoutPageNumber()">Playout Page No</button>
-      <button onclick="playoutPageNumberOverTest()">Playout Over Test</button>
-      <button onclick="showBlack()">Playout Black</button>
-      <button onclick="showTestSignal()">Playout Test Signal</button>
+      <input type="text" class="pageNo" placeholder="Page" onchange="playoutPageNumber()">
+      <button id="other-button" onclick="playoutPageNumber()">Playout Page No</button>
+      <button id="other-button" onclick="playoutPageNumberOverTest()">Playout Over Test</button>
+      <button id="other-button" onclick="showBlack()">Playout Black</button>
+      <button id="other-button" onclick="showTestSignal()">Playout Test Signal</button>
+      <button id="other-button" onclick="displayJpeg()">Display Jpeg</button>
     </div>
-      
+          
     
     
 
