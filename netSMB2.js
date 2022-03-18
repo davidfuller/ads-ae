@@ -165,4 +165,34 @@ async function getServer(serverDetails){
     return null;
   }
 }
-module.exports = {findMyServer, getIPShare, findMyPath, readJson, readXML, readDir}
+
+/**
+ * 
+ * @param {object} serverDetails 
+ * @param {string} path 
+ * @returns {string}
+*/
+async function readJpeg(serverDetails, path){
+  let client = await getServer(serverDetails)
+  if (client != null){
+    try {
+      let exists = await client.exists(path);
+      if (exists){
+        let result = await client.readFile(path);
+        return result.toString('base64');
+      } else {
+        return ''
+      }
+      
+    }
+    catch(err){
+      console.log(err)
+      return null;
+    }
+  } else {
+    return null;
+  }
+}
+
+
+module.exports = {findMyServer, getIPShare, findMyPath, readJson, readXML, readDir, readJpeg}
