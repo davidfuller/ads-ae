@@ -6,6 +6,7 @@ const pixelLog = require('./pixelLog.js');
 const netSMB2 = require('./netSMB2.js');
 const xmlStrings = require('./xmlStrings');
 const tc = require('./timecode.js');
+const listbox = require('./listbox');
 
 const pageWorkDetailsFilenameUNC ='\\\\alpaca\\dropbox\\Development\\Node\\StreamMasterHelper\\JSON\\Work_Details_XXXX.json'
 
@@ -396,11 +397,19 @@ async function getPageNumberAndNameDetails(folderUNC){
     let myPage ={}
     myPage.txPageNumber = myWorkDetails.txPageNumber;
     myPage.pageName = myWorkDetails.pageName;
+    myPage.jpegFilenameBase = myWorkDetails.jpegFilenameBase;
+    myPage.mp4Folder = myWorkDetails.mp4Folder;
+    myPage.mp4FilePattern = myWorkDetails.mp4FilePattern;
     result.push(myPage)
   }
   return result
 }
 
+/**
+ * 
+ * @param {string} folderName 
+ * @returns {string[]}
+ */
 async function readDirectory(folderName){
   let server = netSMB2.findMyServer(folderName);
   server.ipShare = await netSMB2.getIPShare(server);
@@ -409,5 +418,18 @@ async function readDirectory(folderName){
   return files
 }
 
+/**
+ * 
+ * @param {string} filename 
+ * @returns {string}
+ */
+async function readJpeg(filename){
+  let server = netSMB2.findMyServer(filename);
+  server.ipShare = await netSMB2.getIPShare(server);
+  let path = netSMB2.findMyPath(filename);
+  let jpeg = await netSMB2.readJpeg(server, path);
+  return jpeg
+}
 
-module.exports = {playBlack, playTest, playOutOverTest, playOut, playoutPageNumber, playoutPageNumberOverTest, getPageNumberAndNameDetails}
+
+module.exports = {playBlack, playTest, playOutOverTest, playOut, playoutPageNumber, playoutPageNumberOverTest, getPageNumberAndNameDetails, readJpeg, readDirectory}
