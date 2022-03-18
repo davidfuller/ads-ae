@@ -1,43 +1,60 @@
 
 const pageWorkDetailsFolderUNC ='\\\\alpaca\\dropbox\\Development\\Node\\StreamMasterHelper\\JSON\\'
 
-async function fillListbox(){
+function fillListbox(pages){
+  let theSearch = document.querySelector(".search").value;
+  console.log(theSearch)
+  emptyListBox();
   let select = document.getElementById("pageChoice");
-  let pages = await command.getPageNumberAndNameDetails(pageWorkDetailsFolderUNC);
-  console.log(pages)
-  
   for(let i = 0; i < pages.length; i++) {
-      let page = pages[i];
+    let page = pages[i];
+    if (page.pageName.toLowerCase().includes(theSearch.toLowerCase())){
       var element = document.createElement("option");
       element.textContent = page.pageName
       element.value = page.txPageNumber
       select.appendChild(element);
+    }
   }
+}
 
+async function getThePages(){
+  let pages = await command.getPageNumberAndNameDetails(pageWorkDetailsFolderUNC);
+  return pages;
+}
+
+function emptyListBox(){
+  let select = document.getElementById("pageChoice");
+  while (select.hasChildNodes()) {
+    select.removeChild(select.firstChild);
+  }
+}
   
 
-    /* Look for any elements with the class "page-select": */
+
+
+/*
+  // Look for any elements with the class "page-select": 
   let pageSelectElements = document.getElementsByClassName("page-select");
   let pageSelectElementsLength = pageSelectElements.length;
   for (let i = 0; i < pageSelectElementsLength; i++) {
     let selectElements = pageSelectElements[i].getElementsByTagName("select")[0];
     let selectElementsLength = selectElements.length;
-    /* For each element, create a new DIV that will act as the selected item: */
+    // For each element, create a new DIV that will act as the selected item: 
     let theDiv= document.createElement("DIV");
     theDiv.setAttribute("class", "select-selected");
     theDiv.innerHTML = selectElements.options[selectElements.selectedIndex].innerHTML;
     pageSelectElements[i].appendChild(theDiv);
-    /* For each element, create a new DIV that will contain the option list: */
+    // For each element, create a new DIV that will contain the option list: 
     let anotherDiv = document.createElement("DIV");
     anotherDiv.setAttribute("class", "select-items select-hide");
     for (let j = 1; j < selectElementsLength; j++) {
-      /* For each option in the original select element,
-      create a new DIV that will act as an option item: */
+      // For each option in the original select element,
+      //create a new DIV that will act as an option item: 
       let optionDiv = document.createElement("DIV");
       optionDiv.innerHTML = selectElements.options[j].innerHTML;
       optionDiv.addEventListener("click", function(e) {
-          /* When an item is clicked, update the original select box,
-          and the selected item: */
+          // When an item is clicked, update the original select box,
+          //and the selected item: 
           let selectTags = this.parentNode.parentNode.getElementsByTagName("select")[0];
           let selectTagsLength = selectTags.length;
           let previousSib = this.parentNode.previousSibling;
@@ -60,8 +77,8 @@ async function fillListbox(){
     }
     pageSelectElements[i].appendChild(anotherDiv);
     theDiv.addEventListener("click", function(theClick) {
-      /* When the select box is clicked, close any other select boxes,
-      and open/close the current select box: */
+      // When the select box is clicked, close any other select boxes,
+      //and open/close the current select box: 
       theClick.stopPropagation();
       closeAllSelect(this);
       this.nextSibling.classList.toggle("select-hide");
@@ -70,8 +87,8 @@ async function fillListbox(){
   }
 
   function closeAllSelect(theElement) {
-    /* A function that will close all select boxes in the document,
-    except the current select box: */
+    // A function that will close all select boxes in the document,
+    //except the current select box: 
     let arrowNumber = [];
     let selectedItems = document.getElementsByClassName("select-items");
     let selectSelecteds = document.getElementsByClassName("select-selected");
@@ -91,8 +108,9 @@ async function fillListbox(){
     }
   }
 
-  /* If the user clicks anywhere outside the select box,
-  then close all select boxes: */
+  // If the user clicks anywhere outside the select box,
+  then close all select boxes: 
   document.addEventListener("click", closeAllSelect); 
-}
+  */
+
 
