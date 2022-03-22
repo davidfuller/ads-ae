@@ -10,7 +10,8 @@ const createWindow = () => {
       webPreferences: {
         preload: path.join(__dirname, 'preload.js'),
         nodeIntegration: true,
-        contextIsolation: false
+        contextIsolation: false,
+        enableRemoteModule: true
       }
     })
   
@@ -21,6 +22,8 @@ const createWindow = () => {
     app.on('activate', () => {
       if (BrowserWindow.getAllWindows().length === 0) createWindow()
     })
+    console.log("I'm here")
+    win.webContents.send("userPath", app.getPath("userData"))
   })
 
   app.on('window-all-closed', () => {
@@ -31,4 +34,8 @@ const createWindow = () => {
     const myMessage = data;
     win.webContents.send("receiveMessage", myMessage);
   });
+
+ipcMain.on("getUserPath", (event, data) =>{
+  win.webContents.send("userPath", app.getPath("userData"))
+})
 
