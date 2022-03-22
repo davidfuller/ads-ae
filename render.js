@@ -8,7 +8,8 @@ const configFilename = '/Users/David/Dropbox/Development/Node/StreamMasterHelper
 
 const playoutSubDevice = 1;
 const renderSubDevice = 2;
-let pages =[];
+let pages = [];
+let userPath;
 
 /**
  * @type {CurrentConfig}
@@ -22,11 +23,16 @@ let currentConfig = {
   triggerLastId: '4294967295'
 }
 
+ipcRenderer.send("getUserPath");
 
 ipcRenderer.on("receiveMessage", (event, data) => {
   const passwordTag = document.querySelector("#status");
   passwordTag.innerText = data;
 });
+
+ipcRenderer.on("userPath", (event,data) => {
+  userPath = data;
+})
 
 async function showBlack(){
     let result = [];
@@ -91,16 +97,28 @@ async function playoutPageNumberOverTest(){
   ipcRenderer.send('sendMessage','Playing Out Page');
 }
 
-async function readThePages(){
+async function reloadThePages(){
   ipcRenderer.send('sendMessage','Reading Pages');
-  pages = await getThePages()
+  pages = await getThePages(userPath);
   fillListbox(pages);
   ipcRenderer.send('sendMessage','Idle');
   let pageBlock = document.getElementById("page-block");
   pageBlock.style.display = "block";
-  let readPagesButton = document.getElementById("read-pages-btn");
+  let readPagesButton = document.getElementById("read-buttons");
   readPagesButton.style.display = "none";
 }
+
+async function refreshThePages(){
+  ipcRenderer.send('sendMessage','Reading Pages');
+  pages = await getThePagesFromCache(userPath);
+  fillListbox(pages);
+  ipcRenderer.send('sendMessage','Idle');
+  let pageBlock = document.getElementById("page-block");
+  pageBlock.style.display = "block";
+  let readPagesButton = document.getElementById("read-buttons");
+  readPagesButton.style.display = "none";
+}
+
 
 async function refreshPages(){
   fillListbox(pages);
