@@ -1,5 +1,5 @@
 {
-  "name": "smgen",
+  "name": "streammastergenerator",
   "version": "1.0.0",
   "description": "Controller for StreamMaster",
   "main": "main.js",
