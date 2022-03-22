@@ -1,29 +1,22 @@
 const ipcRenderer = require("electron").ipcRenderer;
 const tc = require("./timecode.js")
 const command = require("./command.js")
+const settings = require('./settings');
 
-const workDetailsFilenameUNC ='\\\\alpaca\\dropbox\\Development\\Node\\StreamMasterHelper\\JSON\\workDetails.json'
-const mediaProfilesFilename = '/Users/David/Dropbox/Development/Node/StreamMasterHelper/config/media_profiles.xml';
-const configFilename = '/Users/David/Dropbox/Development/Node/StreamMasterHelper/config/config.xml';
+
+
+
+
 
 const playoutSubDevice = 1;
 const renderSubDevice = 2;
 let pages = [];
 let userPath;
+let theSettings = {};
 
-/**
- * @type {CurrentConfig}
-*/
-let currentConfig = {
-  mediaProfilesFilename: mediaProfilesFilename,
-  configFilename: configFilename,
-  renderSubDevice: renderSubDevice,
-  playoutSubDevice: playoutSubDevice,
-  triggerFirstId: '0',
-  triggerLastId: '4294967295'
-}
 
 ipcRenderer.send("getUserPath");
+ipcRenderer.send("getSettings");
 
 ipcRenderer.on("receiveMessage", (event, data) => {
   const passwordTag = document.querySelector("#status");
@@ -32,7 +25,21 @@ ipcRenderer.on("receiveMessage", (event, data) => {
 
 ipcRenderer.on("userPath", (event,data) => {
   userPath = data;
+  console.log(userPath);
 })
+
+ipcRenderer.on("refreshPages", () => {
+  refreshThePages();
+})
+
+ipcRenderer.on("reloadPages", () => {
+  reloadThePages();
+})
+
+ipcRenderer.on("receiveSettings", () => {
+  getSettings();
+})
+
 
 async function showBlack(){
     let result = [];
@@ -50,7 +57,7 @@ async function showTestSignal(){
 
 async function playoutPageWorkfileOverTest(){
     //Playout Page and Background from Workfile
-    let temp = await command.playOutOverTest(workDetailsFilenameUNC, currentConfig);      
+    let temp = await command.playOutOverTest(theSettings.workDetailsFilenameUNC, theSettings.currentConfig);      
     console.log(temp);
     /*
     theCommand = temp.theCommand;
@@ -60,7 +67,7 @@ async function playoutPageWorkfileOverTest(){
 }
 async function playoutPageWorkfile(){
   //Playout Page and Background from Workfile
-  let temp = await command.playOut(workDetailsFilenameUNC, currentConfig);      
+  let temp = await command.playOut(theSettings.workDetailsFilenameUNC, theSettings.currentConfig);      
   console.log(temp);
   /*
   theCommand = temp.theCommand;
@@ -77,8 +84,7 @@ async function playoutPageNumber(){
 
 async function playoutPage(pageNumber){
   ipcRenderer.send('sendMessage','Cueing Page ' + pageNumber);
-  let temp = await command.playoutPageNumber(pageNumber, currentConfig);      
-  console.log(temp);
+  let temp = await command.playoutPageNumber(pageNumber, theSettings.currentConfig);      
   currentPlayoutDetails.startTimecode = temp.theCommand.timecodeStart;
   currentPlayoutDetails.pageNumber = temp.theCommand.pageNumber;
   currentPlayoutDetails.playoutEnd = temp.theCommand.playoutEnd;
@@ -87,7 +93,7 @@ async function playoutPage(pageNumber){
 async function playoutPageNumberOverTest(){
   //Playout Page from pageNumber over Test
   let pageNumber = document.querySelector(".pageNo").value
-  let temp = await command.playoutPageNumberOverTest(pageNumber, currentConfig);     
+  let temp = await command.playoutPageNumberOverTest(pageNumber, theSettings.currentConfig);     
   console.log(temp);
   
   /*
@@ -253,6 +259,10 @@ async function playVideo(){
       break;
     }
   }
-  
+}
+
+async function getSettings(){
+  theSettings = await settings.readSettings(userPath);
+  console.log(theSettings);
 }
 
