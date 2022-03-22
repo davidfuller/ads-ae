@@ -1,7 +1,9 @@
-const {app, BrowserWindow, ipcMain} =  require('electron');
+const {app, BrowserWindow, ipcMain, Menu} =  require('electron');
 const path = require('path')
 
 let win = null;
+
+
 
 const createWindow = () => {
     win = new BrowserWindow({
@@ -22,8 +24,8 @@ const createWindow = () => {
     app.on('activate', () => {
       if (BrowserWindow.getAllWindows().length === 0) createWindow()
     })
-    console.log("I'm here")
-    win.webContents.send("userPath", app.getPath("userData"))
+    const theMenu = Menu.buildFromTemplate(template);
+    Menu.setApplicationMenu(theMenu);
   })
 
   app.on('window-all-closed', () => {
@@ -39,3 +41,37 @@ ipcMain.on("getUserPath", (event, data) =>{
   win.webContents.send("userPath", app.getPath("userData"))
 })
 
+ipcMain.on("getSettings", () => {
+  win.webContents.send("receiveSettings");  
+})
+
+function refreshThePages(){
+  win.webContents.send("refreshPages");
+}
+
+function reloadThePages(){
+  win.webContents.send("reloadPages");
+}
+
+function settings(){
+  win.webContents.send("receiveSettings");
+}
+
+const template = [
+  {
+    label: 'File',
+    submenu: [
+      {label: 'Refresh Pages', click(){refreshThePages()}},
+      {label: 'Reload Pages from Disk', click(){reloadThePages()}},
+      {label: 'Settings', click(){settings()}},
+      {role: 'quit'}
+    ]
+  },
+  {
+    label: 'View',
+    submenu: [
+      {role: 'reload'},
+      {role: 'toggleDevTools'}
+    ]
+  }
+]
