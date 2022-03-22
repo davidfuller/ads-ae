@@ -1,3 +1,4 @@
+const settings = require('./settings')
 
 const pageWorkDetailsFolderUNC ='\\\\alpaca\\dropbox\\Development\\Node\\StreamMasterHelper\\JSON\\'
 
@@ -17,10 +18,19 @@ function fillListbox(pages){
   }
 }
 
-async function getThePages(){
+async function getThePages(userPath){
   let pages = await command.getPageNumberAndNameDetails(pageWorkDetailsFolderUNC);
+  await settings.savePages(pages, userPath);
   return pages;
 }
+
+async function getThePagesFromCache(userPath){
+  //let pages = await command.getPageNumberAndNameDetails(pageWorkDetailsFolderUNC);
+  //await settings.savePages(pages, userPath);
+  pages = await settings.readPages(userPath);
+  return pages;
+}
+
 
 function emptyListBox(){
   let select = document.getElementById("pageChoice");
