@@ -279,12 +279,6 @@ async function playoutPageNumberOverTest(pageNumber, currentConfig){
   }
 }
 
-function getPage(pageNumber){
-  let pageFilename = pageWorkDetailsFilenameUNC.replace('XXXX', pageNumber.padStart(4,'0'));
-
-  return {pageNumber: pageNumber, pageFilename: pageFilename}
-}
-
 /**
  * @async
  * @param {string} commandXML
@@ -430,6 +424,5 @@ async function readJpeg(filename){
   let jpeg = await netSMB2.readJpeg(server, path);
   return jpeg
 }
-
 
 module.exports = {playBlack, playTest, playOutOverTest, playOut, playoutPageNumber, playoutPageNumberOverTest, getPageNumberAndNameDetails, readJpeg, readDirectory}
