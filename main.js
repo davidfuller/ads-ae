@@ -1,8 +1,7 @@
-const {app, BrowserWindow, ipcMain, Menu} =  require('electron');
+const {app, BrowserWindow, ipcMain, Menu, dialog} =  require('electron');
 const path = require('path')
 
 let win = null;
-
 
 
 const createWindow = () => {
@@ -63,7 +62,7 @@ const template = [
     submenu: [
       {label: 'Refresh Pages', click(){refreshThePages()}},
       {label: 'Reload Pages from Disk', click(){reloadThePages()}},
-      {label: 'Settings', click(){settings()}},
+      {label: 'Settings', click(){openSettingsWindow()}},
       {role: 'quit'}
     ]
   },
@@ -75,3 +74,41 @@ const template = [
     ]
   }
 ]
+
+var newWindow = null
+
+function openSettingsWindow() {
+  if (newWindow) {
+    newWindow.focus()
+    return
+  }
+
+  newWindow = new BrowserWindow({
+    height: 1000,
+    resizable: false,
+    width: 1000,
+    title: '',
+    minimizable: false,
+    fullscreenable: false,
+    webPreferences: {
+      nodeIntegration: true,
+      contextIsolation: false
+    }
+  })
+
+  newWindow.loadFile('settings.html')
+
+  newWindow.on('closed', function() {
+    newWindow = null
+  })
+}
+
+ipcMain.on("getUserPathSettings", (event, data) =>{
+  newWindow.webContents.send("userPath", app.getPath("userData"));
+})
+
+ipcMain.on("getSettingsFolderDialog", async (event, data) => {
+  let theFolder = await dialog.showOpenDialog(newWindow, {properties: ['openDirectory']} );
+  newWindow.webContents.send("folderChoice", theFolder);
+})
+
