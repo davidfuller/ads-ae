@@ -20,5 +20,11 @@ async function readSettings(userPath){
   return JSON.parse(data);
 }
 
+async function saveSettings(settings, userPath){
+  let filename = path.join(userPath, 'settings.json');
+  console.log(JSON.stringify(settings, null, 2));
+  await fs.writeFile(filename,JSON.stringify(settings, null, 2));
+}
 
-module.exports = {savePages, readPages, readSettings}
+
+module.exports = {savePages, readPages, readSettings, saveSettings}
