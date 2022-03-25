@@ -6,9 +6,23 @@ const pixelLog = require('./pixelLog.js');
 const netSMB2 = require('./netSMB2.js');
 const xmlStrings = require('./xmlStrings');
 const tc = require('./timecode.js');
-const listbox = require('./listbox');
+const path = require('path');
+const settings = require('./settings')
 
-const pageWorkDetailsFilenameUNC ='\\\\alpaca\\dropbox\\Development\\Node\\StreamMasterHelper\\JSON\\Work_Details_XXXX.json'
+let userPath;
+let theSettings = {};
+ipcRenderer.send("getUserPath");
+
+ipcRenderer.on("userPath", (event,data) => {
+  userPath = data;
+  ipcRenderer.send("getSettings");
+})
+
+
+ipcRenderer.on("receiveSettings", async () => {
+  theSettings = await settings.readSettings(userPath);
+})
+
 
 /**
  * 
@@ -267,10 +281,11 @@ async function playoutPageNumber(pageNumber, currentConfig){
 }
 
 function getPage(pageNumber){
-  let pageFilename = pageWorkDetailsFilenameUNC.replace('XXXX', pageNumber.padStart(4,'0'));
-
+  let filename = path.join(theSettings.pageWorkDetailsFolderUNC, theSettings.pageWorkDetailsFilename)
+  let pageFilename = filename.replace('XXXX', pageNumber.padStart(4,'0'));
   return {pageNumber: pageNumber, pageFilename: pageFilename}
 }
+
 async function playoutPageNumberOverTest(pageNumber, currentConfig){
   let pageDetails = getPage(pageNumber);
   if (pageDetails.pageNumber != '0'){
@@ -387,13 +402,15 @@ async function getPageNumberAndNameDetails(folderUNC){
   theFiles.sort();
   let filteredFiles = theFiles.filter(theFile => theFile.match(/^Work_Details.*.json$/i));
   for (const myFile of filteredFiles){
-    let myWorkDetails = await readWorkDetails(folderUNC + myFile);
+    let myWorkDetails = await readWorkDetails(path.join(folderUNC, myFile));
     let myPage ={}
     myPage.txPageNumber = myWorkDetails.txPageNumber;
     myPage.pageName = myWorkDetails.pageName;
     myPage.jpegFilenameBase = myWorkDetails.jpegFilenameBase;
     myPage.mp4Folder = myWorkDetails.mp4Folder;
     myPage.mp4FilePattern = myWorkDetails.mp4FilePattern;
+    myPage.folder = folderUNC;
+    myPage.filename = myFile;
     result.push(myPage)
   }
   return result
@@ -424,5 +441,113 @@ async function readJpeg(filename){
   let jpeg = await netSMB2.readJpeg(server, path);
   return jpeg
 }
+async function clearJpegFolder(workDetailsFilenameUNC){
+  let myWorkDetails = await readWorkDetails(workDetailsFilenameUNC);
+  let myJpegDetails = await readJpegDetails(myWorkDetails.jpegDetailsFilename);
+  await emptyFolder(myJpegDetails.filenameBase)
+}
 
-module.exports = {playBlack, playTest, playOutOverTest, playOut, playoutPageNumber, playoutPageNumberOverTest, getPageNumberAndNameDetails, readJpeg, readDirectory}
+async function emptyFolder(filename){
+  let server = netSMB2.findMyServer(filename);
+  server.ipShare = await netSMB2.getIPShare(server);
+  let path = netSMB2.findMyPath(filename);
+  let paths = netSMB2.splitPath(path);
+  if (paths.length >= 0){
+    let jpegFolder = paths[paths.length-1];
+    let files = await netSMB2.readDir(server, jpegFolder);
+    if (files != null){
+      for (const thefile of files){
+        let filePath = jpegFolder + '\\' + thefile;
+        await netSMB2.deleteFile(server, filePath);
+      }
+    }
+  }
+}
+/**
+ * @param {string} filename 
+ * @returns {JpegDetails}
+ */
+ async function readJpegDetails(filename){
+  let server = netSMB2.findMyServer(filename);
+  server.ipShare = await netSMB2.getIPShare(server);
+  let path = netSMB2.findMyPath(filename)
+  let theJpegDetails = await netSMB2.readJson(server, path);
+  return theJpegDetails
+}
+async function exportJpegFromWorkfile(workDetailsFilenameUNC){
+  let theCommand  = {}
+  let result = [];
+  theCommand.commandName = 'Export JPEG from workfile'
+  let myWorkDetails = await readWorkDetails(workDetailsFilenameUNC);
+  theCommand.workDetailsFilename = workDetailsFilenameUNC;
+  let myPageDetails = await readPageDetails(myWorkDetails.pageDetailsFilename);
+  let myJpegDetails = await readJpegDetails(myWorkDetails.jpegDetailsFilename);
+  let xmlString = await readPPWG(myJpegDetails.ppwgFilename);
+  theCommand.ppwgFilename = myJpegDetails.ppwgFilename;
+  myPageDetails = xmlStrings.pageDetailsFromPPWG(xmlString, myPageDetails);
+  result.push(...await exportJpegsFromPPWG(myPageDetails, myJpegDetails));
+  let jpegResult = await extractImages(result[0].xml, myJpegDetails.filenameBase)
+  theCommand.filenames = jpegResult; 
+  return {result: result, theCommand: theCommand};
+}
+
+/**
+ * 
+ * @param {PageDetails} pageDetails 
+ * @param {JpegDetails} jpegDetails 
+ * @returns {CommandResponse[]}
+*/
+async function exportJpegsFromPPWG(pageDetails, jpegDetails)
+{
+  /**
+  * @type {CommandResponse[]}
+  */
+  let result = [];
+  
+  let requestXML = xmlStrings.imageXMLPPWG(pageDetails, jpegDetails.width, jpegDetails.height)
+  result.push(await genericSendCommand(requestXML, jpegDetails.renderSubDevice, 'Export JPEGs from PPWG'));
+  
+  return result
+}
+/**
+ * 
+ * @param {string} xmlString 
+ * @param {string} imageFilenameBase 
+ * @returns {string[]}
+*/
+async function extractImages(xmlString, imageFilenameBase){
+//Looks for <ImageData></ImageData> and extracts the text in between
+
+  var start;
+  var end;
+  let num = 0;
+  let buff;
+  let result;
+  let filename;
+  let filenames = []
+
+  let server = netSMB2.findMyServer(imageFilenameBase);
+  server.ipShare = await netSMB2.getIPShare(server);
+
+  start = xmlString.indexOf(xmlStrings.imageDataTag.open);
+  end = xmlString.indexOf(xmlStrings.imageDataTag.close, start);
+
+  while (start != -1 && num < 10){
+    buff = Buffer.from(xmlString.substring(start + xmlStrings.imageDataTag.open.length, end), 'base64');
+    filename = imageFilenameBase + '_' + num + '.jpg';
+    filenames.push(filename);
+    let path = netSMB2.findMyPath(filename)
+    
+    result =  await netSMB2.writeJpeg(server, path, buff);
+    //console.log(result);
+    //console.log(num, start, end);
+    num += 1
+    start = xmlString.indexOf(xmlStrings.imageDataTag.open, end);
+    end = xmlString.indexOf(xmlStrings.imageDataTag.close, start);
+  }
+  return filenames;
+ 
+}
+
+
+module.exports = {playBlack, playTest, playOutOverTest, playOut, playoutPageNumber, playoutPageNumberOverTest, getPageNumberAndNameDetails, readJpeg, readDirectory, clearJpegFolder, exportJpegFromWorkfile}
