@@ -52,7 +52,16 @@ input {
 .search{
   margin-left: 50px;
   margin-bottom: 10px;
+  margin-top: 10px;
   width: 49%;
+}
+
+#stream-master-ip {
+  width: 200px;
+}
+
+#page-json-folder {
+  width: 90%;
 }
 
 ::placeholder{
@@ -150,6 +159,14 @@ video {
   margin-left: 50px;
   margin-bottom: 10px;
 }
+
+#page-path {
+  margin-left: 50px;
+  margin-top: 20px;
+  font-size: 14px;
+  color: midnightblue;
+}
+
 /*
 
 .select-selected:after {
