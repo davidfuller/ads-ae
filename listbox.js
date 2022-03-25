@@ -6,6 +6,11 @@ function fillListbox(pages){
   let select = document.getElementById("pageChoice");
   for(let i = 0; i < pages.length; i++) {
     let page = pages[i];
+    if (i==0){
+      let myPath = page.folder;
+      let pathLabel = document.getElementById('page-path');
+      pathLabel.innerText = myPath;
+    }
     if (page.pageName.toLowerCase().includes(theSearch.toLowerCase())){
       var element = document.createElement("option");
       element.textContent = page.pageName
