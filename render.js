@@ -2,14 +2,8 @@ const ipcRenderer = require("electron").ipcRenderer;
 const tc = require("./timecode.js")
 const command = require("./command.js")
 const settings = require('./settings');
+const path = require('path');
 
-
-
-
-
-
-const playoutSubDevice = 1;
-const renderSubDevice = 2;
 let pages = [];
 let userPath;
 let theSettings = {};
@@ -43,36 +37,27 @@ ipcRenderer.on("receiveSettings", () => {
 
 async function showBlack(){
     let result = [];
-    result = await command.playBlack('black', 1 , true, '');
+    result = await command.playBlack('black', theSettings.currentConfig.playoutSubDevice, true, '');
     console.log(result);
     ipcRenderer.send('sendMessage','Showing Black');
 }
 
 async function showTestSignal(){
     let result = [];
-    result = await command.playTest('test', 1, true, '');
+    result = await command.playTest('test', theSettings.currentConfig.playoutSubDevice, true, '');
     console.log(result);
     ipcRenderer.send('sendMessage','Showing Test Signal');
 }
-
 async function playoutPageWorkfileOverTest(){
     //Playout Page and Background from Workfile
     let temp = await command.playOutOverTest(theSettings.workDetailsFilenameUNC, theSettings.currentConfig);      
     console.log(temp);
-    /*
-    theCommand = temp.theCommand;
-    result = temp.result;
-    */
     ipcRenderer.send('sendMessage','Playing Out Page Over Test');
 }
 async function playoutPageWorkfile(){
   //Playout Page and Background from Workfile
   let temp = await command.playOut(theSettings.workDetailsFilenameUNC, theSettings.currentConfig);      
   console.log(temp);
-  /*
-  theCommand = temp.theCommand;
-  result = temp.result;
-  */
   ipcRenderer.send('sendMessage','Playing Out Page');
 }
 
@@ -266,3 +251,16 @@ async function getSettings(){
   console.log(theSettings);
 }
 
+async function renderAllJpegs(){
+  let theFiles = await command.readDirectory(theSettings.pageWorkDetailsFolderUNC);
+  theFiles.sort();
+  let filteredFiles = theFiles.filter(theFile => theFile.match(/^Work_Details.*.json$/i));
+  for (const myFile of filteredFiles){
+    let workFile = path.join(theSettings.pageWorkDetailsFolderUNC, myFile);
+    if (filteredFiles.indexOf(myFile) == 0){
+      await command.clearJpegFolder(workFile);
+    }
+    let temp = await command.exportJpegFromWorkfile(workFile);
+    console.log(temp);
+  }
+}
