@@ -17,6 +17,7 @@
 
       <div id="page-block" style="display:none;">
         <div class="page-select">
+          <div id="page-path"></div>
           <input type="text" class="search" placeholder="Search..." oninput="refreshPages()" >  
           <select name="pages" id="pageChoice" size="10" ondblclick="selectPage()" onclick="displayJpeg()">
           </select> 
@@ -39,6 +40,7 @@
       <button id="other-button" onclick="showBlack()">Playout Black</button>
       <button id="other-button" onclick="showTestSignal()">Playout Test Signal</button>
       <button id="other-button" onclick="displayJpeg()">Display Jpeg</button>
+      <button id="other-button" onclick="renderAllJpegs()">Render All Jpegs</button>
     </div>
           
     
