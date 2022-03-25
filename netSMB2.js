@@ -194,5 +194,72 @@ async function readJpeg(serverDetails, path){
   }
 }
 
+async function writeJpeg(serverDetails, path, buffer){
 
-module.exports = {findMyServer, getIPShare, findMyPath, readJson, readXML, readDir, readJpeg}
+  await deleteFile(serverDetails, path)
+  let client = await getServer(serverDetails)
+  if (client != null){
+    try {
+      if (await createPathIfNotExist(path, client)){
+        let result = await client.writeFile(path, buffer);
+        return result;
+      }
+    }
+    catch(err){
+      console.log(err)
+      return null;
+    }
+  } else {
+    return null;
+  }
+}
+
+async function deleteFile(serverDetails, path){
+  let client = await getServer(serverDetails)
+  if (client != null){
+    try {
+      let exists = await client.exists(path)
+      if (exists){
+        await client.unlink(path);
+      }
+      return true
+    }
+    catch(err){
+      console.log(err)
+      return null;
+    }
+  } else {
+    return null;
+  }
+}
+
+async function createPathIfNotExist(path, client){
+  let thePaths =[]
+  thePaths = splitPath(path);
+  let exists;
+  for (const myPath of thePaths){
+    exists = await client.exists(myPath);
+    if (!exists){
+      await client.mkdir(myPath);
+      exists = await client.exists(myPath);
+    }
+  }
+  return exists;
+}
+
+function splitPath(path){
+  const delimiter = '\\';
+  let paths = path.split(delimiter)
+  let numPaths = paths.length
+  let thePaths = []
+  for (let i = 0; i < numPaths - 1; i++){
+    if (i == 0){
+      thePaths.push(paths[i]);
+    } else {
+      thePaths.push(thePaths[i-1] + delimiter + paths[i]);
+    }
+  }
+  return thePaths 
+}
+
+module.exports = {findMyServer, getIPShare, findMyPath, readJson, readXML, readDir, readJpeg, writeJpeg, splitPath, deleteFile}
