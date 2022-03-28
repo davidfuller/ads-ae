@@ -57,8 +57,8 @@ function framesToTimecodeString(frames){
 function nowAsTimecode(){
 
   const today = new Date();
-  const frames = Math.floor(today.getMilliseconds()/40);
-  return zeroPad(today.getHours(), 2) + ':' + zeroPad(today.getMinutes(), 2) + ':' + zeroPad(today.getSeconds(), 2) + ':' + zeroPad(frames,2)
+  const frames = Math.floor(today.getUTCMilliseconds()/40);
+  return zeroPad(today.getUTCHours(), 2) + ':' + zeroPad(today.getUTCMinutes(), 2) + ':' + zeroPad(today.getUTCSeconds(), 2) + ':' + zeroPad(frames,2)
 }
 /**
  * 
@@ -69,4 +69,10 @@ function nowPlusTimecode(seconds){
   return timecodeAddSeconds(nowAsTimecode(), seconds);
 }
 
-module.exports = {timecodeAdd, timecodeAddSeconds, nowAsTimecode, nowPlusTimecode, timecodeGreaterThan, timecodeSubtract}
+function formatTime(theDate){
+  console.log(theDate)
+  return zeroPad(theDate.getHours(), 2) + ':' + zeroPad(theDate.getMinutes(), 2) + ':' + zeroPad(theDate.getSeconds(), 2);
+}
+
+
+module.exports = {timecodeAdd, timecodeAddSeconds, nowAsTimecode, nowPlusTimecode, timecodeGreaterThan, timecodeSubtract, formatTime}
