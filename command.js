@@ -485,6 +485,7 @@ async function exportJpegFromWorkfile(workDetailsFilenameUNC){
   let xmlString = await readPPWG(myJpegDetails.ppwgFilename);
   theCommand.ppwgFilename = myJpegDetails.ppwgFilename;
   myPageDetails = xmlStrings.pageDetailsFromPPWG(xmlString, myPageDetails);
+  theCommand.pageNumber = myWorkDetails.txPageNumber
   result.push(...await exportJpegsFromPPWG(myPageDetails, myJpegDetails));
   let jpegResult = await extractImages(result[0].xml, myJpegDetails.filenameBase)
   theCommand.filenames = jpegResult; 
