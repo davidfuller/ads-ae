@@ -7,9 +7,8 @@ function fillListbox(pages){
   for(let i = 0; i < pages.length; i++) {
     let page = pages[i];
     if (i==0){
-      let myPath = page.folder;
-      let pathLabel = document.getElementById('page-path');
-      pathLabel.innerText = myPath;
+      let jsonFolder = document.getElementById("page-json-folder");
+      jsonFolder.value = page.folder
     }
     if (page.pageName.toLowerCase().includes(theSearch.toLowerCase())){
       var element = document.createElement("option");
@@ -38,7 +37,19 @@ function emptyListBox(){
     select.removeChild(select.firstChild);
   }
 }
-  
+
+function addToGenerateStatusListbox(theMessage){
+  let select = document.getElementById("select-generate-status");
+  let element = document.createElement("option");
+  console.log(theMessage)
+  element.textContent = tc.formatTime(theMessage.time) + ' ' + theMessage.message;
+  element.value = theMessage.pageNumber;
+  if (theMessage.hasError){
+    element.className = "page-error"
+  }
+  select.appendChild(element);
+  select.scrollTop = select.scrollHeight - select.clientHeight
+}
 
 
 
