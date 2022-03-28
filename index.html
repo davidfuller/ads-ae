@@ -10,14 +10,23 @@
 <body>
     <h1 id="clock"></h1><h1 id="status"></h1>
     <div id="all-page-block">
+      <div id="switcher-block">
+        <button id="switcher-button" onclick="generateJpegs()">Generate</button>
+        <button id="switcher-button" onclick="displayJpegs()">Display</button>
+        <button id="switcher-button" onclick="displayOther()">Other</button>
+
+      </div>
       <div id="read-buttons" style="display: block;">
         <button onclick="reloadThePages()">Reload Pages</button>
         <button onclick="refreshThePages()">Refresh Pages</button>
       </div>
+      <div id="folder-selection">
+        <input type="text" id="page-json-folder" />
+        <button id="choose-folder" onclick="getJsonPlayoutFolder()">Choose Folder</button>
+      </div>
 
       <div id="page-block" style="display:none;">
         <div class="page-select">
-          <div id="page-path"></div>
           <input type="text" class="search" placeholder="Search..." oninput="refreshPages()" >  
           <select name="pages" id="pageChoice" size="10" ondblclick="selectPage()" onclick="displayJpeg()">
           </select> 
@@ -31,16 +40,22 @@
           <source src="" type="video/mp4">
         </video>
       </div>
+      <div id="status-block" style="display:none">
+        <h2 id="num-errors"></h2>
+        <select name="generate-status" id="select-generate-status" size="10" onclick="displayError()">
+        </select>
+        <button id="render-jpegs" onclick="renderAllJpegs()">Render All Jpegs</button>
+        <div id="error-status"></div>
+      </div>
     </div>
     
-    <div id="the-rest">
+    <div id="the-rest" style="display: none;">
       <input type="text" class="pageNo" placeholder="Page" onchange="playoutPageNumber()">
       <button id="other-button" onclick="playoutPageNumber()">Playout Page No</button>
       <button id="other-button" onclick="playoutPageNumberOverTest()">Playout Over Test</button>
       <button id="other-button" onclick="showBlack()">Playout Black</button>
       <button id="other-button" onclick="showTestSignal()">Playout Test Signal</button>
       <button id="other-button" onclick="displayJpeg()">Display Jpeg</button>
-      <button id="other-button" onclick="renderAllJpegs()">Render All Jpegs</button>
     </div>
           
     
