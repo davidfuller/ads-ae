@@ -17,6 +17,7 @@ const createWindow = () => {
     })
   
     win.loadFile('index.html')
+    win.webContents.send("refreshPages");
   }
   app.whenReady().then(() => {
     createWindow()
@@ -112,3 +113,7 @@ ipcMain.on("getSettingsFolderDialog", async (event, data) => {
   newWindow.webContents.send("folderChoice", theFolder);
 })
 
+ipcMain.on("getFolderDialog", async (event, data) => {
+  let theFolder = await dialog.showOpenDialog(win, {properties: ['openDirectory']} );
+  win.webContents.send("folderChoice", theFolder);
+})
