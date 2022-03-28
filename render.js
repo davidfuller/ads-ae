@@ -3,11 +3,12 @@ const tc = require("./timecode.js")
 const command = require("./command.js")
 const settings = require('./settings');
 const path = require('path');
+const errorMessages = require('./errorMessages')
 
 let pages = [];
 let userPath;
 let theSettings = {};
-
+let genLog = [];
 
 ipcRenderer.send("getUserPath");
 ipcRenderer.send("getSettings");
@@ -22,8 +23,8 @@ ipcRenderer.on("userPath", (event,data) => {
   console.log(userPath);
 })
 
-ipcRenderer.on("refreshPages", () => {
-  refreshThePages();
+ipcRenderer.on("refreshPages", async () => {
+  await refreshThePages();
 })
 
 ipcRenderer.on("reloadPages", () => {
@@ -88,12 +89,14 @@ async function playoutPageNumberOverTest(){
   ipcRenderer.send('sendMessage','Playing Out Page');
 }
 
+let pageBlock = document.getElementById("page-block");
 async function reloadThePages(){
   ipcRenderer.send('sendMessage','Reading Pages');
+  
+  pageBlock.style.display = "none";
   pages = await getThePages(userPath);
   fillListbox(pages);
   ipcRenderer.send('sendMessage','Idle');
-  let pageBlock = document.getElementById("page-block");
   pageBlock.style.display = "block";
   let readPagesButton = document.getElementById("read-buttons");
   readPagesButton.style.display = "none";
@@ -233,15 +236,17 @@ async function playVideo(){
   let thePage = findPageNumber(pageNumber);
   console.log(thePage);
   let theFiles = await command.readDirectory(thePage.mp4Folder);
-  theFiles.sort();
-  console.log(theFiles);
-  for (theFile of theFiles){
-    if (theFile.includes(thePage.mp4FilePattern)){
-      console.log(theFile);
-      let videoNode = document.querySelector('video')
-      videoNode.src = thePage.mp4Folder + theFile;
-      toggleVideo(true);
-      break;
+  if (theFiles){
+    theFiles.sort();
+    console.log(theFiles);
+    for (theFile of theFiles){
+      if (theFile.includes(thePage.mp4FilePattern)){
+        console.log(theFile);
+        let videoNode = document.querySelector('video')
+        videoNode.src = thePage.mp4Folder + theFile;
+        toggleVideo(true);
+        break;
+      }
     }
   }
 }
@@ -252,15 +257,93 @@ async function getSettings(){
 }
 
 async function renderAllJpegs(){
+  genLog.length = 0;
+  let theMessage = {};
+  let numErrors =0;
   let theFiles = await command.readDirectory(theSettings.pageWorkDetailsFolderUNC);
   theFiles.sort();
   let filteredFiles = theFiles.filter(theFile => theFile.match(/^Work_Details.*.json$/i));
+  theMessage.pageCount = filteredFiles.length
+  theMessage.message = 'About to create ' + theMessage.pageCount + ' items';
+  theMessage.time = new Date();
+  addToGenerateStatusListbox(theMessage);
+  let errorMessage = document.getElementById("num-errors")
+
+  genLog.push(theMessage);
   for (const myFile of filteredFiles){
     let workFile = path.join(theSettings.pageWorkDetailsFolderUNC, myFile);
     if (filteredFiles.indexOf(myFile) == 0){
       await command.clearJpegFolder(workFile);
     }
     let temp = await command.exportJpegFromWorkfile(workFile);
-    console.log(temp);
+    let theMessage = {};
+    theMessage.pageNumber = temp.theCommand.pageNumber;
+    theMessage.time = new Date();
+    if (temp.result[0].log[0].hasError){
+      theMessage.message = 'Page ' + theMessage.pageNumber + ' has error.';
+      theMessage.errors = temp.result[0].log[0].theErrors
+      theMessage.hasError = true;
+      numErrors += 1;
+    } else {
+      theMessage.message = 'Page ' + theMessage.pageNumber + ' created.';
+      theMessage.hasError = false;
+    }
+    genLog.push(theMessage);
+    addToGenerateStatusListbox(theMessage);
+    errorMessage.innerText = 'Creating page ' + (filteredFiles.indexOf(myFile) + 1) + ' of ' + filteredFiles.length + ": " + numErrors + " Errors"
   }
+  console.log(genLog);
+  errorMessage.innerText = filteredFiles.length + " pages created: " + numErrors + " Errors"
+}
+
+function getJsonPlayoutFolder(){
+  ipcRenderer.send("getFolderDialog");
+}
+
+function displayError(){
+  let pageNumber = errorPageNumber();
+  let errorStatus = document.getElementById("error-status");
+  for (log of genLog){
+    if (pageNumber == log.pageNumber){
+      errorStatus.textContent = errorMessages.parseErrors(log)
+    }
+  }
+}
+
+function errorPageNumber(){
+  var e = document.getElementById("select-generate-status");
+  return e.options[e.selectedIndex].value;
+}
+
+ipcRenderer.on("folderChoice", async (event, folderStuff) => {
+  if (!folderStuff.canceled){
+    if (folderStuff.filePaths.length > 0){
+      let jsonFolder = document.getElementById("page-json-folder");
+      jsonFolder.value = folderStuff.filePaths[0];
+      theSettings.pageWorkDetailsFolderUNC = folderStuff.filePaths[0];
+      settings.saveSettings(theSettings, userPath);
+      await reloadThePages(theSettings, userPath)
+    }
+  }
+})
+
+let generateBlock = document.getElementById("status-block");
+let otherBlock = document.getElementById("the-rest");
+
+function generateJpegs(){
+  generateBlock.style.display = "block";
+  pageBlock.style.display = "none";
+  otherBlock.display = "none";
+}
+
+function displayJpegs(){
+  generateBlock.style.display = "none";
+  pageBlock.style.display = "block";
+  otherBlock.display = "none";
+}
+
+function displayOther(){
+  generateBlock.style.display = "none";
+  pageBlock.style.display = "none";
+  otherBlock.display = "block";
 }
