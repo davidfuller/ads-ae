@@ -8,6 +8,13 @@ body {
     overflow-x: hidden;
 }
 
+#folder-selection{
+  display: flex;
+  align-items:flex-start;
+  justify-content:left;
+  flex-direction: column;
+}
+
 #all-page-block{
   position: absolute;
   left: 0px;
@@ -62,6 +69,12 @@ input {
 
 #page-json-folder {
   width: 90%;
+  margin-left: 50px;
+  font-size: 12px;
+}
+
+#settings-page-json-folder {
+  width: 90%;
 }
 
 ::placeholder{
@@ -97,6 +110,10 @@ button {
   margin-top: 5px;
 }
 
+#choose-folder{
+  margin-top: 10px;
+}
+
 #clock, #status {
   font-family: monospace;
   font-size: 20px;
@@ -106,6 +123,14 @@ button {
   top: 0px;
   padding: 10px;
   margin-left: 50px;
+}
+
+#num-errors, #error-status {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 14px;
+  color: dodgerblue;
+  margin-left: 50px;
+  white-space: pre-line;
 }
 
 #status{
@@ -125,7 +150,7 @@ button {
 .page-select select{
   margin-left: 50px;
   color: dodgerblue;
-  width: 50%;
+  width: 90%;
   border-width: 1px;
   border-radius: 5px;
   border-color: dodgerblue;
@@ -145,6 +170,25 @@ button {
 
 .page-select select:focus{
   outline-color: dodgerblue;
+}
+
+#status-block select{
+  margin-left: 50px;
+  color: dodgerblue;
+  width: 90%;
+  border-width: 1px;
+  border-radius: 5px;
+  border-color: dodgerblue;
+  background-color: aliceblue;
+}
+
+#status-block select:focus{
+  outline-color: dodgerblue;
+}
+
+.page-error{
+  background-color: red;
+  color: white;
 }
 
 img{
