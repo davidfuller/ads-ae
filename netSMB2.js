@@ -262,4 +262,4 @@ function splitPath(path){
   return thePaths 
 }
 
-module.exports = {findMyServer, getIPShare, findMyPath, readJson, readXML, readDir, readJpeg, writeJpeg, splitPath, deleteFile}
+module.exports = {findMyServer, getIPShare, findMyPath, readJson, readXML, readDir, readJpeg, writeJpeg, splitPath, deleteFile, getServer, createPathIfNotExist}
