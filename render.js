@@ -12,6 +12,8 @@ let genLog = [];
 
 ipcRenderer.send("getUserPath");
 ipcRenderer.send("getSettings");
+ipcRenderer.send("refreshPages");
+//await refreshPages();
 
 ipcRenderer.on("receiveMessage", (event, data) => {
   const passwordTag = document.querySelector("#status");
@@ -20,7 +22,6 @@ ipcRenderer.on("receiveMessage", (event, data) => {
 
 ipcRenderer.on("userPath", (event,data) => {
   userPath = data;
-  console.log(userPath);
 })
 
 ipcRenderer.on("refreshPages", async () => {
@@ -39,26 +40,22 @@ ipcRenderer.on("receiveSettings", () => {
 async function showBlack(){
     let result = [];
     result = await command.playBlack('black', theSettings.currentConfig.playoutSubDevice, true, '');
-    console.log(result);
     ipcRenderer.send('sendMessage','Showing Black');
 }
 
 async function showTestSignal(){
     let result = [];
     result = await command.playTest('test', theSettings.currentConfig.playoutSubDevice, true, '');
-    console.log(result);
     ipcRenderer.send('sendMessage','Showing Test Signal');
 }
 async function playoutPageWorkfileOverTest(){
     //Playout Page and Background from Workfile
     let temp = await command.playOutOverTest(theSettings.workDetailsFilenameUNC, theSettings.currentConfig);      
-    console.log(temp);
     ipcRenderer.send('sendMessage','Playing Out Page Over Test');
 }
 async function playoutPageWorkfile(){
   //Playout Page and Background from Workfile
   let temp = await command.playOut(theSettings.workDetailsFilenameUNC, theSettings.currentConfig);      
-  console.log(temp);
   ipcRenderer.send('sendMessage','Playing Out Page');
 }
 
@@ -80,12 +77,6 @@ async function playoutPageNumberOverTest(){
   //Playout Page from pageNumber over Test
   let pageNumber = document.querySelector(".pageNo").value
   let temp = await command.playoutPageNumberOverTest(pageNumber, theSettings.currentConfig);     
-  console.log(temp);
-  
-  /*
-  theCommand = temp.theCommand;
-  result = temp.result;
-  */
   ipcRenderer.send('sendMessage','Playing Out Page');
 }
 
@@ -137,7 +128,6 @@ async function testKey(e){
     await selectPage()
   } else if (e.key == "ArrowUp" || e.key == "ArrowDown"){
     await displayJpeg()
-    console.log(listboxPageNumber());
   }
 }
 let currentPlayoutDetails = {}
@@ -166,27 +156,28 @@ function getTime(){
 setInterval(getTime, 40 );
 
 async function displayJpeg(){
-  console.log(pages)
   let thePage = listboxPageNumber();
   let filenameBase = findPageNumber(thePage).jpegFilenameBase;
- 
+  let videoFilename = await videoFileForPageNumber();
   let jpegNo = 0
   let target = document.getElementById('my-jpeg');
+  let videoMessage
   let jpg64
+  if (videoFilename != null){
+   videoMessage = "<h1>Double click image for video</h1>"       
+  } else {
+    videoMessage = "<h1>No video file</h1>"       
+  }
   do {
     let jpegFilenameUNC = filenameBase + '_' + jpegNo + '.jpg';
     jpg64 = await command.readJpeg(jpegFilenameUNC);
     if (jpegNo == 0){
       if (jpg64 != ''){
+        
         let image = '<img src="data:image/jpg;base64,' + jpg64 + '" ondblclick="playVideo()" />';
-        target.innerHTML = image;
-        let btn = document.getElementById("toggle-video-jpeg");
-        if (btn.style.display == "none"){
-          btn.style.display = "block";
-          btn.innerText = "Show Video";
-        }
+        target.innerHTML = videoMessage + image;
       } else {
-        target.innerHTML = "No Jpeg"
+        target.innerHTML = "<h1>No Jpeg for this page</h1>"
       }
     } else {
       if (jpg64 == ''){
@@ -204,6 +195,7 @@ async function displayJpeg(){
 function findPageNumber(pageNumber){
   for(page of pages){
     if (page.txPageNumber == pageNumber){
+      console.log(page);
       return page;
     }
   }
@@ -214,6 +206,7 @@ function toggleVideo(forceVideo){
   let myVideo = document.getElementById("my-video");
   let myJpeg = document.getElementById("my-jpeg");
   let btn = document.getElementById("toggle-video-jpeg");
+  let myPlayer = document.getElementById("my-player")
   btn.style.display = "block";
   if (forceVideo){
     btn.innerText = "Show Jpeg";
@@ -223,6 +216,7 @@ function toggleVideo(forceVideo){
     btn.innerText = "Show Video";
     myVideo.style.display = "none";
     myJpeg.style.display = "block";
+    myPlayer.pause();
   } else {
     btn.innerText = "Show Jpeg"
     myVideo.style.display = "block";
@@ -232,34 +226,45 @@ function toggleVideo(forceVideo){
 }
 
 async function playVideo(){
+  let videoFile = await videoFileForPageNumber();
+  if (videoFile){
+    let videoNode = document.querySelector('video')
+    videoNode.src = videoFile;
+    toggleVideo(true);
+  }
+}
+
+async function videoFileForPageNumber(){
   let pageNumber = listboxPageNumber();
   let thePage = findPageNumber(pageNumber);
-  console.log(thePage);
   let theFiles = await command.readDirectory(thePage.mp4Folder);
   if (theFiles){
     theFiles.sort();
-    console.log(theFiles);
     for (theFile of theFiles){
       if (theFile.includes(thePage.mp4FilePattern)){
-        console.log(theFile);
-        let videoNode = document.querySelector('video')
-        videoNode.src = thePage.mp4Folder + theFile;
-        toggleVideo(true);
-        break;
+        return thePage.mp4Folder + theFile;
       }
     }
   }
+  return null;
 }
 
 async function getSettings(){
   theSettings = await settings.readSettings(userPath);
-  console.log(theSettings);
 }
 
+let allErrorsBlock = document.getElementById("full-error-list");
+let showAllErrorsBtn = document.getElementById("show-all-errors");
+let errorStatus = document.getElementById("error-status");
+
 async function renderAllJpegs(){
+  emptyListBox("select-generate-status");
+  showAllErrorsBtn.style.display = 'none';
+  allErrorsBlock.style.display = 'none';
+  errorStatus.textContent = '';
   genLog.length = 0;
   let theMessage = {};
-  let numErrors =0;
+  let numErrors = 0;
   let theFiles = await command.readDirectory(theSettings.pageWorkDetailsFolderUNC);
   theFiles.sort();
   let filteredFiles = theFiles.filter(theFile => theFile.match(/^Work_Details.*.json$/i));
@@ -268,6 +273,7 @@ async function renderAllJpegs(){
   theMessage.time = new Date();
   addToGenerateStatusListbox(theMessage);
   let errorMessage = document.getElementById("num-errors")
+  let errorList = [];
 
   genLog.push(theMessage);
   for (const myFile of filteredFiles){
@@ -279,11 +285,31 @@ async function renderAllJpegs(){
     let theMessage = {};
     theMessage.pageNumber = temp.theCommand.pageNumber;
     theMessage.time = new Date();
+    theMessage.workfile = workFile;
+    
     if (temp.result[0].log[0].hasError){
       theMessage.message = 'Page ' + theMessage.pageNumber + ' has error.';
       theMessage.errors = temp.result[0].log[0].theErrors
       theMessage.hasError = true;
       numErrors += 1;
+      let someErrors = errorMessages.parseErrors(theMessage);
+      console.log('Some Errors');
+      console.log(someErrors)
+      for (anError of someErrors){
+        if (anError != ''){
+          console.log('An Error');
+          console.log(anError)
+          if (!errorList.includes(anError)){
+            console.log('An Error Included');
+            console.log(anError)
+            errorList.push(anError);
+            errorList.sort();
+          }
+        }
+      }
+      console.log(errorList);
+      let fullErrorList = document.getElementById("full-error-list");
+      fullErrorList.innerText = errorList.join('\r\n')
     } else {
       theMessage.message = 'Page ' + theMessage.pageNumber + ' created.';
       theMessage.hasError = false;
@@ -294,18 +320,27 @@ async function renderAllJpegs(){
   }
   console.log(genLog);
   errorMessage.innerText = filteredFiles.length + " pages created: " + numErrors + " Errors"
+  showAllErrorsBtn.style.display = 'block';
 }
 
 function getJsonPlayoutFolder(){
   ipcRenderer.send("getFolderDialog");
 }
 
+function showAllErrors(){
+  if (allErrorsBlock.style.display == 'none'){
+    allErrorsBlock.style.display = 'block';
+  } else {
+    allErrorsBlock.style.display = 'none';
+  }
+}
+
+
 function displayError(){
   let pageNumber = errorPageNumber();
-  let errorStatus = document.getElementById("error-status");
   for (log of genLog){
     if (pageNumber == log.pageNumber){
-      errorStatus.textContent = errorMessages.parseErrors(log)
+      errorStatus.textContent = errorMessages.parseErrorMultiline(log)
     }
   }
 }
@@ -329,21 +364,38 @@ ipcRenderer.on("folderChoice", async (event, folderStuff) => {
 
 let generateBlock = document.getElementById("status-block");
 let otherBlock = document.getElementById("the-rest");
+let myJpegBlock = document.getElementById("my-jpeg");
+let myVideoBlock = document.getElementById("my-video");
 
 function generateJpegs(){
   generateBlock.style.display = "block";
   pageBlock.style.display = "none";
-  otherBlock.display = "none";
+  otherBlock.style.display = "none";
+  myJpegBlock.style.display = "none";
+  myVideoBlock.style.display = "none";
 }
 
 function displayJpegs(){
   generateBlock.style.display = "none";
   pageBlock.style.display = "block";
-  otherBlock.display = "none";
+  otherBlock.style.display = "none";
+  myJpegBlock.style.display = "block";
+  myVideoBlock.style.display = "none";
 }
 
 function displayOther(){
   generateBlock.style.display = "none";
   pageBlock.style.display = "none";
-  otherBlock.display = "block";
+  otherBlock.style.display = "block";
+  myJpegBlock.style.display = "none";
+  myVideoBlock.style.display = "none";
+}
+
+async function renderMp4(){
+  let thePage = listboxPageNumber();
+  console.log(thePage)
+  pageDetails = findPageNumber(thePage)
+  let workFile = path.join(pageDetails.folder, pageDetails.filename);
+  let temp = await command.exportMp4FromWorkfile(workFile); 
+  console.log(temp);
 }
