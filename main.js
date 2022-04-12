@@ -17,7 +17,6 @@ const createWindow = () => {
     })
   
     win.loadFile('index.html')
-    win.webContents.send("refreshPages");
   }
   app.whenReady().then(() => {
     createWindow()
@@ -26,6 +25,7 @@ const createWindow = () => {
     })
     const theMenu = Menu.buildFromTemplate(template);
     Menu.setApplicationMenu(theMenu);
+    console.log("I'm here");
   })
 
   app.on('window-all-closed', () => {
@@ -43,6 +43,10 @@ ipcMain.on("getUserPath", (event, data) =>{
 
 ipcMain.on("getSettings", () => {
   win.webContents.send("receiveSettings");  
+})
+
+ipcMain.on("refreshPages", () => {
+  refreshThePages();
 })
 
 function refreshThePages(){
