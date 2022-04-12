@@ -343,4 +343,134 @@ const imageDataTag = {
   close:  '</ImageData>'
 }
 
-module.exports = {root, setLayerState, doTrigger, layerStateChange, layer, state, source, systemTrigger, ppwgToAsset, createPageXML, createPpwlXML, attachMedia, media, playMedia, pageDetailsFromPPWG, imageXMLPPWG, imageDataTag}
+function abortRender(){
+  return '<AbortRenderToFile Device="Graphics" Category="Create" />'
+}
+
+function getRenderProfile(subDevice){
+  return '<GetRenderProfileList SubDeviceNumber="' + subDevice + '" Device="Graphics" Category="Create" />'
+}
+function cancelSystemTrigger(subDevice){
+  let temp = {
+    open:   '<CancelSystemTrigger SubDeviceNumber="' + subDevice + '" Device="System" Category="Timeline">',
+    close:  '</CancelSystemTrigger>'
+  }
+  return temp;
+}
+
+function triggerIdRange(first, last){
+  return '<TriggerIDRange First="' + first +'" Last="' + last + '" />';
+}
+
+function detachMedia(subDevice){
+  return '<DetachMedia SubDeviceNumber="' + subDevice + '" Device="Clip" Category="Timeline" PlayerID="*" />'
+}
+
+function setConfigMerge(subDevice){
+  temp = {
+    open:   '<SetConfiguration SubDeviceNumber="' + subDevice + '" Device="System" Category="Config" Merge="true">',
+    close:  '</SetConfiguration>'
+  }
+  return temp;
+}
+
+const mediaPipelineConfig = {
+  open:   '<MediaPipelineConfig xmlns="http://pixelpower.com/PixelXML">',
+  close:  '</MediaPipelineConfig>'
+}
+
+const mediaPipelineInput = '<Inputs />'
+
+function mediaPipelineOutput(mediaProfile){
+  return '<Outputs><VideoWindowOutput Name="VideoWindow" MediaProfile="' + mediaProfile + '"><Source /></VideoWindowOutput><NullOutput Name="Null" MediaProfile="' + mediaProfile + '"><Source /></NullOutput></Outputs>'
+}
+
+function attachRenderBackgroundMedia(filename, som, eom){
+  return '<AttachMedia Device="Clip" Category="Timeline" Level="V" PlayerID="1"><Media Name="' + filename + '" SOM="' + som + '" EOM="' + eom + '" /></AttachMedia>'
+}
+
+function deferPlay(playerId, triggerId){
+  return '<PlayMedia Device="Clip" Category="Timeline" PlayerID="' + playerId + '"><Deferral DeferFrameOffset="0"><DeferToSystemTrigger TriggerID="' + triggerId + '" /></Deferral></PlayMedia>'
+}
+
+function renderLayerStateChange(triggerId, layerNumber, playerId){
+  let temp = '<SetLayerStates Device="MasterControl" Category="Playout">'
+  temp += '<Deferral DeferFrameOffset="0"><DeferToSystemTrigger TriggerID="' + triggerId +'" /></Deferral>'
+  temp += '<Transition Type="Cut" Duration="00:00:00:00" />'
+  temp += '<LayerStateChange><Layer Level="V" Number="' + layerNumber + '" />'
+  temp += '<State Active="true"><Source Type="VCLIP" Matrix="' + playerId + '" Index="0" />'
+  temp += '<AspectRatioConversion><ConversionMode>Off</ConversionMode></AspectRatioConversion>'
+  temp += '</State></LayerStateChange>'
+  temp += '<LayerStateChange><Layer Level="A" Number="' + layerNumber + '" />'
+  temp += '<State Active="true"><Source Type="VCLIP" Matrix="' + playerId + '" Index="0" />'
+  temp += '<AspectRatioConversion><ConversionMode>Off</ConversionMode></AspectRatioConversion>'
+  temp += '</State></LayerStateChange></SetLayerStates>'
+
+  return temp;
+}
+
+function blackRenderLayerStateChange(triggerId, layerNumber){
+  let temp = '<SetLayerStates Device="MasterControl" Category="Playout">'
+  temp += '<Deferral DeferFrameOffset="0"><DeferToSystemTrigger TriggerID="' + triggerId +'" /></Deferral>'
+  temp += '<Transition Type="Cut" Duration="00:00:00:00" />'
+  temp += '<LayerStateChange><Layer Level="C" Number="' + layerNumber + '" />'
+  temp += '<State Active="false"><Source Type="BLACK" Index="1" />'
+  temp += '<AspectRatioConversion><ConversionMode>Off</ConversionMode></AspectRatioConversion>'
+  temp += '</State></LayerStateChange>'
+  temp += '<LayerStateChange><Layer Level="V" Number="' + layerNumber + '" />'
+  temp += '<State Active="false"><Source Type="BLACK" Index="1" />'
+  temp += '<AspectRatioConversion><ConversionMode>Off</ConversionMode></AspectRatioConversion>'
+  temp += '</State></LayerStateChange>'
+  temp += '<LayerStateChange><Layer Level="A" Number="' + layerNumber + '" />'
+  temp += '<State Active="true"><Source Type="BLACK" Index="1" />'
+  temp += '<AspectRatioConversion><ConversionMode>Off</ConversionMode></AspectRatioConversion>'
+  temp += '</State></LayerStateChange></SetLayerStates>'
+
+  return temp;
+}
+
+function deferTriggerToTimecode(triggerId, timecode, description){
+  let temp = '<SystemTrigger Device="System" Category="Timeline">';
+  temp += '<Deferral DeferFrameOffset="0">';
+  temp += '<DeferToDateTimecode><DateTimecode Date="0001-01-01" Timecode="' + timecode + '" /></DeferToDateTimecode>';
+  temp += '</Deferral>';
+  temp += '<Trigger TriggerID="' + triggerId + '" Description="' + description + '" />';
+  temp += '</SystemTrigger>';
+
+  return temp;
+}
+
+function attachPageMedia(playerId, jobFilename, pageNo, som, eom, fieldData){
+  let temp = '<AttachMedia Device="Clip" Category="Timeline" Level="G" PlayerID="' + playerId + '">';
+  temp += '<Media Name="' + jobFilename + '\\' + pageNo + '" SOM="' + som + '" EOM="' + eom + '">';
+  temp += fieldData;
+  temp += '</Media></AttachMedia>';
+
+  return temp;
+}
+
+function attachPpwlMedia(playerId, ppwlFilename, som, eom){
+  let temp = '<AttachMedia Device="Clip" Category="Timeline" Level="G" PlayerID="' + playerId + '">';
+  //let loop = 'ForwardLoop'
+  //temp += '<Media Name="' + ppwlFilename + '" SOM="' + som + '" EOM="' + eom + '" Loop="' + loop + '">';
+  temp += '<Media Name="' + ppwlFilename + '" SOM="' + som + '" EOM="' + eom + '">';
+  temp += '</Media></AttachMedia>';
+
+  return temp;
+}
+
+function renderToFile(renderDetails){
+  let tempXML;
+
+  tempXML = '<RenderToFile Category="Create" Device="Graphics">';
+  tempXML += '<Render Start ="' + renderDetails.startTimecode + '" End="' + renderDetails.endTimecode + '" SOM="' + renderDetails.somTimecode +'">'
+  tempXML += '<RenderProfile Name="' + renderDetails.profileName + '" OutputFileFolder="' + renderDetails.folder + '" OutputFilePattern="' + renderDetails.filePattern +'">'
+  tempXML += '</RenderProfile></Render></RenderToFile>'
+
+  return tempXML;
+}
+
+
+module.exports = {root, setLayerState, doTrigger, layerStateChange, layer, state, source, systemTrigger, ppwgToAsset, createPageXML, createPpwlXML, attachMedia, media, playMedia, pageDetailsFromPPWG, imageXMLPPWG, imageDataTag, abortRender,
+                    getRenderProfile, cancelSystemTrigger, triggerIdRange, detachMedia, setConfigMerge, mediaPipelineConfig, mediaPipelineInput, mediaPipelineOutput, attachRenderBackgroundMedia, deferPlay, renderLayerStateChange, 
+                    blackRenderLayerStateChange, deferTriggerToTimecode, attachPageMedia, attachPpwlMedia, renderToFile}
