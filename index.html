@@ -11,10 +11,9 @@
     <h1 id="clock"></h1><h1 id="status"></h1>
     <div id="all-page-block">
       <div id="switcher-block">
-        <button id="switcher-button" onclick="generateJpegs()">Generate</button>
         <button id="switcher-button" onclick="displayJpegs()">Display</button>
+        <button id="switcher-button" onclick="generateJpegs()">Generate</button>
         <button id="switcher-button" onclick="displayOther()">Other</button>
-
       </div>
       <div id="read-buttons" style="display: block;">
         <button onclick="reloadThePages()">Reload Pages</button>
@@ -31,12 +30,16 @@
           <select name="pages" id="pageChoice" size="10" ondblclick="selectPage()" onclick="displayJpeg()">
           </select> 
         </div>
-        <button id="list-playout" onclick="selectPage()">Playout</button>
+        <div id="list-playout-block">
+          <button id="list-playout" onclick="selectPage()">Playout</button>
+          <button id="list-playout" onclick="renderMp4()">Render</button>
+        </div>
       </div>
-      <button id="toggle-video-jpeg" style="display: none;" onclick="toggleVideo()">Show Video</button>
-      <div id="my-jpeg" style="display: block;"></div>
+      <div id="my-jpeg" style="display: block;">
+      </div>
       <div id="my-video" style="display: none;">
-        <video controls autoplay>
+        <button id="toggle-video-jpeg" onclick="toggleVideo()">Show Jpeg</button>
+        <video id="my-player" controls autoplay>
           <source src="" type="video/mp4">
         </video>
       </div>
@@ -46,17 +49,20 @@
         </select>
         <button id="render-jpegs" onclick="renderAllJpegs()">Render All Jpegs</button>
         <div id="error-status"></div>
+        <button id="show-all-errors" style="display: none;" onclick="showAllErrors()">Show All Errors</button>
+        <div id="full-error-list" style="display: none;"></div>
+      </div>
+      <div id="the-rest" style="display: none;">
+        <input type="text" class="pageNo" placeholder="Page" onchange="playoutPageNumber()">
+        <button id="other-button" onclick="playoutPageNumber()">Playout Page No</button>
+        <button id="other-button" onclick="playoutPageNumberOverTest()">Playout Over Test</button>
+        <button id="other-button" onclick="showBlack()">Playout Black</button>
+        <button id="other-button" onclick="showTestSignal()">Playout Test Signal</button>
+        <button id="other-button" onclick="displayJpeg()">Display Jpeg</button>
       </div>
     </div>
     
-    <div id="the-rest" style="display: none;">
-      <input type="text" class="pageNo" placeholder="Page" onchange="playoutPageNumber()">
-      <button id="other-button" onclick="playoutPageNumber()">Playout Page No</button>
-      <button id="other-button" onclick="playoutPageNumberOverTest()">Playout Over Test</button>
-      <button id="other-button" onclick="showBlack()">Playout Black</button>
-      <button id="other-button" onclick="showTestSignal()">Playout Test Signal</button>
-      <button id="other-button" onclick="displayJpeg()">Display Jpeg</button>
-    </div>
+    
           
     
     
