@@ -3,9 +3,9 @@
 
 
 function parseErrors(theErrors){
+  let myMessage = []
   if (theErrors.hasError){
-    let myMessage = []
-    for (myError of log.errors){
+    for (myError of theErrors.errors){
       if (myError.errorNumber == '10110'){
         myMessage.push('Missing page: ' + theErrors.pageNumber);
       } else if (myError.errorNumber == '10131'){
@@ -16,10 +16,18 @@ function parseErrors(theErrors){
         myMessage.push(myError.errorDescription);
       }
     }
-    return myMessage.join("\r\n")
   } else {
-    return ''
+    myMessage.push('');
   }
+  return myMessage;
 }
 
-module.exports = {parseErrors}
+function parseErrorMultiline(theErrors){
+  let myMessage = parseErrors(theErrors)
+  return myMessage.join("\r\n")
+}
+
+
+
+
+module.exports = {parseErrors, parseErrorMultiline}
