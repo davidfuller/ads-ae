@@ -8,6 +8,7 @@ const xmlStrings = require('./xmlStrings');
 const tc = require('./timecode.js');
 const path = require('path');
 const settings = require('./settings')
+const movieRender = require('./movieRender')
 
 let userPath;
 let theSettings = {};
@@ -396,6 +397,20 @@ async function readPpwlDetails(filename){
   return thePpwlDetails
 }
 
+/**
+ * 
+ * @param {string} filename 
+ * @returns {RenderDetails}
+ */
+ async function readRenderDetails(filename){
+  let server = netSMB2.findMyServer(filename);
+  server.ipShare = await netSMB2.getIPShare(server);
+  let path = netSMB2.findMyPath(filename)
+  let theRenderDetails = await netSMB2.readJson(server, path);
+  return theRenderDetails;
+}
+
+
 async function getPageNumberAndNameDetails(folderUNC){
   let theFiles = await readDirectory(folderUNC);
   let result = []
@@ -550,5 +565,162 @@ async function extractImages(xmlString, imageFilenameBase){
  
 }
 
+async function exportMp4FromWorkfile(workDetailsFilenameUNC){
+  let theCommand  = {};
+  let result = [];
+  theCommand.commandName = 'Export mp4 from workfile';
+  let myWorkDetails = await readWorkDetails(workDetailsFilenameUNC);
+  if (myWorkDetails != null){
+    theCommand.workDetailsFilename = workDetailsFilenameUNC;
+    let myRenderDetails = await readRenderDetails(myWorkDetails.renderDetailsFilename);
+    let myPageDetails = await readPageDetails(myWorkDetails.pageDetailsFilename);
+    let myBackgroundMedia = await readBackgroundMedia(myWorkDetails.backgroundMediaFilename);
+    let myPpwlDetails = []
+    if (myWorkDetails.ppwlDetailsFilename != ''){
+      myPpwlDetails = await readPpwlDetails(myWorkDetails.ppwlDetailsFilename)
+    }
+    let dateString = new Date().toISOString().replace(/T|:|-/g, '_').substring(0, 19)
+    myRenderDetails.filePattern = myRenderDetails.filePattern.replace('%d', dateString)
+    let xmlString = await readPPWG(myWorkDetails.ppwgFilename);
+    theCommand.ppwgFilename = myWorkDetails.ppwgFilename;
+    myPageDetails = xmlStrings.pageDetailsFromPPWG(xmlString, myPageDetails);
+    console.log(theSettings.currentConfig)
+    theSettings.blackDetails.startTimecode = tc.timecodeAdd(myPageDetails.startTimecode, myPageDetails.eom)
+    let testResult = await cuePagePpwg(xmlString, myPageDetails.jobPath, myPageDetails.triggerId, theSettings.currentConfig.playoutSubDevice, false, '');
+    if (hasAnyErrors(testResult)){
+      result = testResult
+    } else {
+      if (createMp4FolderIfNotExist(myRenderDetails.folder)){
+        result = await command.renderMovie(theSettings.currentConfig, myBackgroundMedia, myPageDetails, theSettings.blackDetails, myRenderDetails, myPpwlDetails); 
+      }
+      theCommand.renderFolder = myRenderDetails.folder;
+      theCommand.renderFilename = myRenderDetails.filePattern;
+    }
+  }
+  return {result: result, theCommand: theCommand};
+}
 
-module.exports = {playBlack, playTest, playOutOverTest, playOut, playoutPageNumber, playoutPageNumberOverTest, getPageNumberAndNameDetails, readJpeg, readDirectory, clearJpegFolder, exportJpegFromWorkfile}
+function hasAnyErrors(theResult){
+  for (const tempResult of theResult){
+    for (const theLog of tempResult.log){
+      if (theLog.hasError){
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+async function createMp4FolderIfNotExist(folder){
+  let server = netSMB2.findMyServer(folder);
+  server.ipShare = await netSMB2.getIPShare(server);
+  let path = netSMB2.findMyPath(folder);
+  let client = await netSMB2.getServer(server);
+  if (client != null){
+    if (await netSMB2.createPathIfNotExist(path, client)){
+      return true;
+    } else {
+      return false;
+    }
+  } else {
+    return false;
+  }
+}
+/**
+ * 
+ * @param {CurrentConfig} currentConfig 
+ * @param {BackgroundMedia} backgroundMedia 
+ * @param {PageDetails} pageDetails 
+ * @param {BlackDetails} blackDetails 
+ * @param {RenderDetails} renderDetails 
+ * @returns {CommandResponse []}
+ */
+ async function renderMovie(currentConfig, backgroundMedia, pageDetails, blackDetails, renderDetails, myPpwlDetails){
+  /**
+   * @type {CommandResponse[]}
+   */
+  let result = [];
+  let subDevice = currentConfig.renderSubDevice;
+
+  let profileXML = movieRender.setMediaProfile(path.join(userPath, currentConfig.mediaProfilesFilename));
+  result.push(await genericSendCommand(profileXML, subDevice, 'Set Media Profile'));
+  
+  let configXML = movieRender.setMediaProfile(path.join(userPath, currentConfig.configFilename));
+  result.push(await genericSendCommand(configXML, subDevice, 'Do Config'));
+  
+  let abortXML = movieRender.abortRender();
+  result.push(await genericSendCommand(abortXML, subDevice, 'Abort Render'));
+  
+  let renderProfileXML = movieRender.getRenderProfile(subDevice);
+  result.push(await genericSendCommand(renderProfileXML, subDevice, 'Get Render Profile'));
+  
+  let cancelTriggerXML = movieRender.cancelSystemTrigger(subDevice, currentConfig.triggerFirstId, currentConfig.triggerLastId);
+  result.push(await genericSendCommand(cancelTriggerXML, subDevice, 'Cancel All Triggers'));
+
+  let detachMediaXML = movieRender.detachMedia(subDevice);
+  result.push(await genericSendCommand(detachMediaXML, subDevice, 'Detach Media'));
+
+  let configMergeXML = movieRender.setConfigMerge(subDevice, renderDetails.profileName);
+  result.push(await genericSendCommand(configMergeXML, subDevice, 'Merge Config'));
+
+  let attachBackgroundXML = movieRender.attachBackgroundMedia(backgroundMedia);
+  result.push(await genericSendCommand(attachBackgroundXML, subDevice, 'Attach Background'));
+
+  let deferBackgroundPlayXML = movieRender.deferPlay(backgroundMedia.playerId, backgroundMedia.triggerId);
+  result.push(await genericSendCommand(deferBackgroundPlayXML, subDevice, 'Defer Background Play'));
+
+  let renderBackgroundLayerXML = movieRender.renderLayerStateChange(backgroundMedia.triggerId, backgroundMedia.layerNumber, backgroundMedia.playerId );
+  result.push(await genericSendCommand(renderBackgroundLayerXML, subDevice, 'Render Background Layer State Change'));
+
+  let deferTriggerTimecodeBackgroundXML = movieRender.deferTriggerToTimecode(backgroundMedia.triggerId, backgroundMedia.startTimecode, backgroundMedia.description);
+  result.push(await genericSendCommand(deferTriggerTimecodeBackgroundXML, subDevice, 'Defer Trigger Timecode Background'));
+
+  let attachPageXML = movieRender.attachPageMedia(pageDetails.playerId, pageDetails.jobName, pageDetails.page, pageDetails.som, pageDetails.eom, pageDetails.fieldData);
+  result.push(await genericSendCommand(attachPageXML, subDevice, 'Attach Page Media'));
+
+  let deferPageXML = movieRender.deferPlay(pageDetails.playerId, pageDetails.triggerId);
+  result.push(await genericSendCommand(deferPageXML, subDevice, 'Defer Page Play'));
+
+  let renderPageLayerXML = movieRender.renderLayerStateChange(pageDetails.triggerId, pageDetails.layerNumber, pageDetails.playerId );
+  result.push(await genericSendCommand(renderPageLayerXML, subDevice, 'Render Page Layer State Change'));
+
+  let deferTriggerTimecodePageXML = movieRender.deferTriggerToTimecode(pageDetails.triggerId, pageDetails.startTimecode, pageDetails.description);
+  result.push(await genericSendCommand(deferTriggerTimecodePageXML, subDevice, 'Defer Page Trigger Timecode'));
+
+  if (myPpwlDetails != undefined){
+    let numDetails = myPpwlDetails.length;
+    let logoTriggerId = 10;
+    let logoPlayerId = '6';
+    let logoLayer = '3';
+    
+    for (let i = 0; i < numDetails - 1; i++){
+      let endTimecode = tc.timecodeAdd(myPpwlDetails[i].timecode, myPpwlDetails[i+1].timecode);
+      let attachPpwlXML = movieRender.attachPpwlMedia(logoPlayerId +i, myPpwlDetails[i].ppwlFilename, myPpwlDetails[i].SOM, myPpwlDetails[i].EOM);
+      result.push(await genericSendCommand(attachPpwlXML, subDevice, 'Attach Logo Media: ' + i));
+
+      let deferPpwlXML = movieRender.deferPlay(logoTriggerId + i, logoPlayerId + i);
+      result.push(await genericSendCommand(deferPpwlXML, subDevice, 'Defer Logo Play: ' + i));
+
+      let renderPpwlLayerXML = movieRender.renderLayerStateChange(logoTriggerId + i, logoLayer, logoPlayerId + i );
+      result.push(await genericSendCommand(renderPpwlLayerXML, subDevice, 'Render Logo Layer State Change: ' + i));
+
+      let deferTriggerTimecodePpwlXML = movieRender.deferTriggerToTimecode(logoTriggerId + i, myPpwlDetails[i].timecode, "Logo");
+      result.push(await genericSendCommand(deferTriggerTimecodePpwlXML, subDevice, 'Defer Logo Trigger Timecode: + i'));
+    }
+  }
+
+  let renderBlackLayerXML = movieRender.blackRenderLayerStateChange(blackDetails.triggerId, blackDetails.layerNumber);
+  result.push(await genericSendCommand(renderBlackLayerXML, subDevice, 'Black Layer State Change'));
+
+  let deferTriggerTimecodeBlackXML = movieRender.deferTriggerToTimecode(blackDetails.triggerId, blackDetails.startTimecode, blackDetails.description);
+  result.push(await genericSendCommand(deferTriggerTimecodeBlackXML, subDevice, 'Defer Black Trigger Timecode'));
+
+  let renderFileXML = movieRender.renderToFile(renderDetails);
+  result.push(await genericSendCommand(renderFileXML, subDevice, 'Render the file'));
+
+  return result;
+}
+
+
+
+module.exports = {playBlack, playTest, playOutOverTest, playOut, playoutPageNumber, playoutPageNumberOverTest, getPageNumberAndNameDetails, readJpeg, readDirectory, clearJpegFolder, exportJpegFromWorkfile, exportMp4FromWorkfile, renderMovie}
