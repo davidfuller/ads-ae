@@ -15,6 +15,9 @@ body {
   flex-direction: column;
 }
 
+#folder-selection input{
+  margin-top: 20px;
+}
 #all-page-block{
   position: absolute;
   left: 0px;
@@ -28,7 +31,15 @@ body {
   justify-content: start;
   position: relative;
   width: 100%;
+  color: dodgerblue;
 }
+
+#my-jpeg h1{
+  margin-left: 50px;
+  font-weight: normal;
+  font-size: 20px;
+}
+
 
 #the-rest{
   position:absolute;
@@ -97,6 +108,14 @@ button {
     cursor: pointer;
 }
 
+#switcher-button {
+  margin-left: 10px;
+}
+
+#switcher-button:first-child {
+  margin-left: 50px;
+}
+
 #other-button{
   margin-left: 0px;
   margin-top: 5px;
@@ -104,8 +123,13 @@ button {
 
 #list-playout {
   margin-top: 5px;
+  margin-left: 10px;
 }
 
+#list-playout:first-child {
+  margin-top: 5px;
+  margin-left: 50px;
+}
 #toggle-video-jpeg{
   margin-top: 5px;
 }
@@ -125,7 +149,7 @@ button {
   margin-left: 50px;
 }
 
-#num-errors, #error-status {
+#num-errors, #error-status, #full-error-list {
   font-family: Arial, Helvetica, sans-serif;
   font-size: 14px;
   color: dodgerblue;
@@ -186,6 +210,10 @@ button {
   outline-color: dodgerblue;
 }
 
+#status-block button {
+  margin-top: 10px;
+}
+
 .page-error{
   background-color: red;
   color: white;
@@ -193,8 +221,8 @@ button {
 
 img{
   width: 480px;
-  margin-left: 50px;
   margin-bottom: 10px;
+  margin-left: 50px;
 }
 
 video {
@@ -210,6 +238,8 @@ video {
   font-size: 14px;
   color: midnightblue;
 }
+
+
 
 /*
 
