@@ -2,7 +2,7 @@ const pageWorkDetailsFolderUNC ='\\\\alpaca\\dropbox\\Development\\Node\\StreamM
 
 function fillListbox(pages){
   let theSearch = document.querySelector(".search").value;
-  emptyListBox();
+  emptyListBox("pageChoice");
   let select = document.getElementById("pageChoice");
   for(let i = 0; i < pages.length; i++) {
     let page = pages[i];
@@ -31,8 +31,8 @@ async function getThePagesFromCache(userPath){
 }
 
 
-function emptyListBox(){
-  let select = document.getElementById("pageChoice");
+function emptyListBox(idString){
+  let select = document.getElementById(idString);
   while (select.hasChildNodes()) {
     select.removeChild(select.firstChild);
   }
