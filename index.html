@@ -14,6 +14,7 @@
         <button id="switcher-button" onclick="displayJpegs()">Display</button>
         <button id="switcher-button" onclick="generateJpegs()">Generate</button>
         <button id="switcher-button" onclick="displayOther()">Other</button>
+        <button id="switcher-button" onclick="displayADS()">ADS</button>
       </div>
       <div id="read-buttons" style="display: block;">
         <button onclick="reloadThePages()">Reload Pages</button>
@@ -59,6 +60,19 @@
         <button id="other-button" onclick="showBlack()">Playout Black</button>
         <button id="other-button" onclick="showTestSignal()">Playout Test Signal</button>
         <button id="other-button" onclick="displayJpeg()">Display Jpeg</button>
+      </div>
+      <div id="ads" style="display: none;">
+        <h1 id="ads-description">Hello</h1>
+        <button id="ads-button" onclick="playoutADS()">Playout ADS</button>
+        <button id="ads-button" onclick="createJpegADS()">Create Jpeg ADS</button>
+        <button id="ads-button" onclick="renderMp4ADS()">Create mp4 ADS</button>
+        <button id="ads-button" onclick="playMp4ADS()">Play mp4 ADS</button>
+        <div id ="ads-jpeg"></div>
+        <div id="ads-video" style="display: none;">
+          <video id="ads-player" controls autoplay>
+            <source src="" type="video/mov">
+          </video>
+        </div>
       </div>
     </div>
     
