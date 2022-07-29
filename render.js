@@ -240,8 +240,10 @@ async function videoFileForPageNumber(){
   let theFiles = await command.readDirectory(thePage.mp4Folder);
   if (theFiles){
     theFiles.sort();
+    theFiles.reverse();
     for (theFile of theFiles){
       if (theFile.includes(thePage.mp4FilePattern)){
+        console.log(theFile);
         return thePage.mp4Folder + theFile;
       }
     }
@@ -366,6 +368,7 @@ let generateBlock = document.getElementById("status-block");
 let otherBlock = document.getElementById("the-rest");
 let myJpegBlock = document.getElementById("my-jpeg");
 let myVideoBlock = document.getElementById("my-video");
+let myADSBlock = document.getElementById("ads");
 
 function generateJpegs(){
   generateBlock.style.display = "block";
@@ -373,6 +376,7 @@ function generateJpegs(){
   otherBlock.style.display = "none";
   myJpegBlock.style.display = "none";
   myVideoBlock.style.display = "none";
+  myADSBlock.style.display = "none";
 }
 
 function displayJpegs(){
@@ -381,6 +385,7 @@ function displayJpegs(){
   otherBlock.style.display = "none";
   myJpegBlock.style.display = "block";
   myVideoBlock.style.display = "none";
+  myADSBlock.style.display = "none";
 }
 
 function displayOther(){
@@ -389,7 +394,84 @@ function displayOther(){
   otherBlock.style.display = "block";
   myJpegBlock.style.display = "none";
   myVideoBlock.style.display = "none";
+  myADSBlock.style.display = "none";
 }
+async function displayADS(){
+  generateBlock.style.display = "none";
+  pageBlock.style.display = "none";
+  otherBlock.style.display = "none";
+  myJpegBlock.style.display = "none";
+  myVideoBlock.style.display = "none";
+  myADSBlock.style.display = "block";
+
+  let description = await command.pageDetailsDescription(theSettings.adsWorkDetailsFilenameUNC);
+  let descriptionElement = document.getElementById('ads-description');
+  descriptionElement.innerText = description;
+}
+
+async function playoutADS(){
+  //let temp = await command.playOut(theSettings.adsWorkDetailsFilenameUNC, theSettings.currentConfig);      
+  let temp = await command.playOutFromFullDetails(theSettings.adsFullDetailsFilenameUNC, theSettings.currentConfig);
+  ipcRenderer.send('sendMessage','Playing Out Page');
+}
+
+async function createJpegADS(){
+  let temp = await command.exportJpegFromFullDetailsFile(theSettings.adsFullDetailsFilenameUNC);
+  console.log(temp.theCommand.filenames);
+  await displayJpegADS(temp.theCommand.filenames);
+}
+
+async function displayJpegADS(jpegFilenames){
+  let jpg64
+  let target = document.getElementById('ads-jpeg');
+  for (filename of jpegFilenames){
+    jpg64 = await command.readJpeg(filename);
+    if (jpegFilenames.indexOf(filename) == 0){
+      if (jpg64 != ''){
+        let image = '<img src="data:image/jpg;base64,' + jpg64 + '" />';
+        target.innerHTML = image;
+      } else {
+        target.innerHTML = "<h1>No Jpeg for this page</h1>"
+      }
+    } else {
+      if (jpg64 != ''){
+        let image = '<img src="data:image/jpg;base64,' + jpg64 + '" />';
+        target.insertAdjacentHTML('beforeend', image);  
+      } else {
+        target.innerHTML = "<h1>No Jpeg for this page</h1>"
+      }
+    }
+  }
+  
+}
+
+let adsMp4Details = {}
+async function renderMp4ADS(){
+  //let temp = await command.exportMp4FromWorkfile(theSettings.adsWorkDetailsFilenameUNC); 
+  let temp = await command.exportMp4FromFullDetailsFile(theSettings.adsFullDetailsFilenameUNC); 
+  console.log(temp);
+  adsMp4Details.folder = temp.theCommand.renderFolder
+  adsMp4Details.filename = temp.theCommand.renderFilename
+}
+
+function playMp4ADS(){
+  playADSVideo(adsMp4Details.folder, adsMp4Details.filename);
+}
+
+function playADSVideo(folder, filename){
+  let videoFile = path.join(folder, filename);
+  console.log(videoFile);
+  if (videoFile){
+    let videoNode = document.getElementById('ads-player');
+    videoNode.src = videoFile;
+    let videoBlock = document.getElementById('ads-video')
+    videoBlock.style.display = "block";
+  }
+}
+
+
+
+
 
 async function renderMp4(){
   let thePage = listboxPageNumber();
