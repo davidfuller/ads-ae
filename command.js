@@ -247,7 +247,8 @@ async function playOut(workDetailsFilenameUNC, currentConfig){
   theCommand.ppwgFilename = myWorkDetails.ppwgFilename;
   theCommand.ppwlDetailsFilename = myWorkDetails.ppwlDetailsFilename;
   let myPpwlDetails = []
-  if (myWorkDetails.ppwlDetailsFilename != ''){
+  console.log(myWorkDetails.ppwlDetailsFilename);
+  if (myWorkDetails.ppwlDetailsFilename != '' && myWorkDetails.ppwlDetailsFilename != undefined){
     myPpwlDetails = await readPpwlDetails(myWorkDetails.ppwlDetailsFilename)
   }
   let timelineStart = tc.nowPlusTimecode(5);
@@ -271,6 +272,46 @@ async function playOut(workDetailsFilenameUNC, currentConfig){
 
   return {result: result, theCommand: theCommand};
 }
+
+async function playOutFromFullDetails(fullDetailsFilenameUNC, currentConfig){
+  let theCommand  = {}
+  let result = [];
+  theCommand.commandName = 'Playout Page and Background from Workfile'
+  let myFullDetails = await readFullDetails(fullDetailsFilenameUNC);
+  theCommand.fullDetailsFilename = fullDetailsFilenameUNC;
+  let myPageDetails = myFullDetails.pageDetails;
+  theCommand.pageDescription = myPageDetails.description;
+  let myBackgroundMedia = myFullDetails.backgroundDetails
+  theCommand.backgroundMediaFilename = myBackgroundMedia.filename;
+  let myPPWG = await readPPWG(myFullDetails.ppwgFilename);
+  theCommand.ppwgFilename = myFullDetails.ppwgFilename;
+  theCommand.ppwlDetailsFilename = myFullDetails.ppwlDetailsFilename;
+  let myPpwlDetails = []
+  if (myFullDetails.ppwlDetailsFilename != '' && myFullDetails.ppwlDetailsFilename != undefined){
+    myPpwlDetails = await readPpwlDetails(myFullDetails.ppwlDetailsFilename)
+  }
+  let timelineStart = tc.nowPlusTimecode(5);
+  theCommand.timecodeStart = timelineStart;
+  let possibleBackgroundEOM = tc.timecodeAdd(myBackgroundMedia.som, myPageDetails.eom);
+  if (tc.timecodeGreaterThan(myBackgroundMedia.eom, possibleBackgroundEOM)){
+    myBackgroundMedia.eom = possibleBackgroundEOM;
+  }
+  let pageStart = tc.timecodeAdd(timelineStart, myPageDetails.startTimecode);
+  let playoutEnd = tc.timecodeAddSeconds(tc.timecodeAdd(timelineStart, myPageDetails.eom), 0);
+  theCommand.playoutEnd = playoutEnd;
+  if (myPpwlDetails != undefined){
+    for (const theDetail of myPpwlDetails){
+      let theTimecode = tc.timecodeAdd(theDetail.timecode, timelineStart);
+      result.push(...await playPpwl(theDetail.ppwlFilename, 'logo', currentConfig.playoutSubDevice, false, theTimecode));
+    }
+  }
+  result.push(...await playClipMedia(myBackgroundMedia, 'NoLoop', currentConfig.playoutSubDevice, false, timelineStart));
+  result.push(...await playPagePpwg(myPPWG, myPageDetails.jobPath, myPageDetails.triggerId, currentConfig.playoutSubDevice, false, pageStart));
+  result.push(...await playTest(myPageDetails.triggerId, currentConfig.playoutSubDevice, false, playoutEnd));
+
+  return {result: result, theCommand: theCommand};
+}
+
 
 async function playoutPageNumber(pageNumber, currentConfig){
   let pageDetails = getPage(pageNumber);
@@ -377,6 +418,7 @@ async function readWorkDetails(filename){
  * @returns {BackgroundMedia}
  */
  async function readBackgroundMedia(filename){
+  console.log(filename);
   let server = netSMB2.findMyServer(filename);
   server.ipShare = await netSMB2.getIPShare(server);
   let path = netSMB2.findMyPath(filename);
@@ -507,6 +549,25 @@ async function exportJpegFromWorkfile(workDetailsFilenameUNC){
   return {result: result, theCommand: theCommand};
 }
 
+async function exportJpegFromFullDetailsFile(fullDetailsFilenameUNC){
+  let theCommand  = {}
+  let result = [];
+  theCommand.commandName = 'Export JPEG from workfile'
+  let myFullDetails = await readFullDetails(fullDetailsFilenameUNC);
+  theCommand.fullDetailsFilename = fullDetailsFilenameUNC;
+  let myPageDetails = myFullDetails.pageDetails;
+  let myJpegDetails = myFullDetails.jpegDetails;
+  let xmlString = await readPPWG(myJpegDetails.ppwgFilename);
+  theCommand.ppwgFilename = myJpegDetails.ppwgFilename;
+  myPageDetails = xmlStrings.pageDetailsFromPPWG(xmlString, myPageDetails);
+  theCommand.pageNumber = myFullDetails.txPageNumber
+  result.push(...await exportJpegsFromPPWG(myPageDetails, myJpegDetails));
+  let jpegResult = await extractImages(result[0].xml, myJpegDetails.filenameBase)
+  theCommand.filenames = jpegResult; 
+  return {result: result, theCommand: theCommand};
+}
+
+
 /**
  * 
  * @param {PageDetails} pageDetails 
@@ -576,13 +637,48 @@ async function exportMp4FromWorkfile(workDetailsFilenameUNC){
     let myPageDetails = await readPageDetails(myWorkDetails.pageDetailsFilename);
     let myBackgroundMedia = await readBackgroundMedia(myWorkDetails.backgroundMediaFilename);
     let myPpwlDetails = []
-    if (myWorkDetails.ppwlDetailsFilename != ''){
+    if (myWorkDetails.ppwlDetailsFilename != '' && myWorkDetails.ppwlDetailsFilename != undefined){
       myPpwlDetails = await readPpwlDetails(myWorkDetails.ppwlDetailsFilename)
     }
     let dateString = new Date().toISOString().replace(/T|:|-/g, '_').substring(0, 19)
     myRenderDetails.filePattern = myRenderDetails.filePattern.replace('%d', dateString)
     let xmlString = await readPPWG(myWorkDetails.ppwgFilename);
     theCommand.ppwgFilename = myWorkDetails.ppwgFilename;
+    myPageDetails = xmlStrings.pageDetailsFromPPWG(xmlString, myPageDetails);
+    console.log(theSettings.currentConfig)
+    theSettings.blackDetails.startTimecode = tc.timecodeAdd(myPageDetails.startTimecode, myPageDetails.eom)
+    let testResult = await cuePagePpwg(xmlString, myPageDetails.jobPath, myPageDetails.triggerId, theSettings.currentConfig.playoutSubDevice, false, '');
+    if (hasAnyErrors(testResult)){
+      result = testResult
+    } else {
+      if (createMp4FolderIfNotExist(myRenderDetails.folder)){
+        result = await command.renderMovie(theSettings.currentConfig, myBackgroundMedia, myPageDetails, theSettings.blackDetails, myRenderDetails, myPpwlDetails); 
+      }
+      theCommand.renderFolder = myRenderDetails.folder;
+      theCommand.renderFilename = myRenderDetails.filePattern;
+    }
+  }
+  return {result: result, theCommand: theCommand};
+}
+
+async function exportMp4FromFullDetailsFile(fullDetailsFilenameUNC){
+  let theCommand  = {};
+  let result = [];
+  theCommand.commandName = 'Export mp4 from workfile';
+  let myFullDetails = await readFullDetails(fullDetailsFilenameUNC);
+  if (myFullDetails != null){
+    theCommand.fullDetailsFilename = fullDetailsFilenameUNC;
+    let myRenderDetails = myFullDetails.renderDetails;
+    let myPageDetails = myFullDetails.pageDetails;
+    let myBackgroundMedia = myFullDetails.backgroundDetails;
+    let myPpwlDetails = []
+    if (myFullDetails.ppwlDetailsFilename != '' && myFullDetails.ppwlDetailsFilename != undefined){
+      myPpwlDetails = await readPpwlDetails(myFullDetails.ppwlDetailsFilename)
+    }
+    let dateString = new Date().toISOString().replace(/T|:|-/g, '_').substring(0, 19)
+    myRenderDetails.filePattern = myRenderDetails.filePattern.replace('%d', dateString)
+    let xmlString = await readPPWG(myFullDetails.ppwgFilename);
+    theCommand.ppwgFilename = myFullDetails.ppwgFilename;
     myPageDetails = xmlStrings.pageDetailsFromPPWG(xmlString, myPageDetails);
     console.log(theSettings.currentConfig)
     theSettings.blackDetails.startTimecode = tc.timecodeAdd(myPageDetails.startTimecode, myPageDetails.eom)
@@ -721,6 +817,20 @@ async function createMp4FolderIfNotExist(folder){
   return result;
 }
 
+async function pageDetailsDescription(workDetailsFilenameUNC){
+  let myWorkDetails = await readWorkDetails(workDetailsFilenameUNC);
+  let myPageDetails = await readPageDetails(myWorkDetails.pageDetailsFilename);
+  return myPageDetails.description.split('_').join(' ');
+}
 
+async function readFullDetails(filename){
+  let server = netSMB2.findMyServer(filename);
+  server.ipShare = await netSMB2.getIPShare(server);
+  let path = netSMB2.findMyPath(filename)
+  let theFullDetails = await netSMB2.readJson(server, path);
+  return theFullDetails;
+    
+}
 
-module.exports = {playBlack, playTest, playOutOverTest, playOut, playoutPageNumber, playoutPageNumberOverTest, getPageNumberAndNameDetails, readJpeg, readDirectory, clearJpegFolder, exportJpegFromWorkfile, exportMp4FromWorkfile, renderMovie}
+module.exports = {playBlack, playTest, playOutOverTest, playOut, playoutPageNumber, playoutPageNumberOverTest, getPageNumberAndNameDetails, readJpeg, readDirectory, clearJpegFolder, exportJpegFromWorkfile, 
+                  exportMp4FromWorkfile, renderMovie, pageDetailsDescription, playOutFromFullDetails, exportJpegFromFullDetailsFile, exportMp4FromFullDetailsFile}
