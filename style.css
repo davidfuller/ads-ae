@@ -232,6 +232,12 @@ video {
   margin-bottom: 10px;
 }
 
+video#ads-player {
+  width: 1920px;
+  height: auto;
+}
+
+
 #page-path {
   margin-left: 50px;
   margin-top: 20px;
