@@ -20,7 +20,7 @@
         <button onclick="reloadThePages()">Reload Pages</button>
         <button onclick="refreshThePages()">Refresh Pages</button>
       </div>
-      <div id="folder-selection">
+      <div id="folder-selection" style="display: block;">
         <input type="text" id="page-json-folder" />
         <button id="choose-folder" onclick="getJsonPlayoutFolder()">Choose Folder</button>
       </div>
@@ -60,6 +60,8 @@
         <button id="other-button" onclick="showBlack()">Playout Black</button>
         <button id="other-button" onclick="showTestSignal()">Playout Test Signal</button>
         <button id="other-button" onclick="displayJpeg()">Display Jpeg</button>
+        <button id="other-button" onclick="playoutPageWorkfileOverTest()">Playout Workfile Over Test</button>
+        <button id="other-button" onclick="playoutPageWorkfile()">Playout workfile</button>
       </div>
       <div id="ads" style="display: none;">
         <h1 id="ads-description">Hello</h1>
