@@ -369,6 +369,7 @@ let otherBlock = document.getElementById("the-rest");
 let myJpegBlock = document.getElementById("my-jpeg");
 let myVideoBlock = document.getElementById("my-video");
 let myADSBlock = document.getElementById("ads");
+let myFolderBlock = document.getElementById("folder-selection")
 
 function generateJpegs(){
   generateBlock.style.display = "block";
@@ -377,6 +378,7 @@ function generateJpegs(){
   myJpegBlock.style.display = "none";
   myVideoBlock.style.display = "none";
   myADSBlock.style.display = "none";
+  myFolderBlock.style.display = "block";
 }
 
 function displayJpegs(){
@@ -386,6 +388,7 @@ function displayJpegs(){
   myJpegBlock.style.display = "block";
   myVideoBlock.style.display = "none";
   myADSBlock.style.display = "none";
+  myFolderBlock.style.display = "block";
 }
 
 function displayOther(){
@@ -395,6 +398,7 @@ function displayOther(){
   myJpegBlock.style.display = "none";
   myVideoBlock.style.display = "none";
   myADSBlock.style.display = "none";
+  myFolderBlock.style.display = "none";
 }
 async function displayADS(){
   generateBlock.style.display = "none";
@@ -403,6 +407,7 @@ async function displayADS(){
   myJpegBlock.style.display = "none";
   myVideoBlock.style.display = "none";
   myADSBlock.style.display = "block";
+  myFolderBlock.style.display = "none";
 
   let description = await command.pageDetailsDescription(theSettings.adsWorkDetailsFilenameUNC);
   let descriptionElement = document.getElementById('ads-description');
@@ -469,10 +474,6 @@ function playADSVideo(folder, filename){
   }
 }
 
-
-
-
-
 async function renderMp4(){
   let thePage = listboxPageNumber();
   console.log(thePage)
@@ -481,3 +482,4 @@ async function renderMp4(){
   let temp = await command.exportMp4FromWorkfile(workFile); 
   console.log(temp);
 }
+
