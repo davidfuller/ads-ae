@@ -26,6 +26,8 @@ const createWindow = () => {
     const theMenu = Menu.buildFromTemplate(template);
     Menu.setApplicationMenu(theMenu);
     console.log("I'm here");
+    console.log(app.getPath("userData"));
+    console.log("Done")
   })
 
   app.on('window-all-closed', () => {
