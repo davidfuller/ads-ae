@@ -4,6 +4,11 @@ const command = require("./command.js")
 const settings = require('./settings');
 const path = require('path');
 const errorMessages = require('./errorMessages')
+const fs = require('fs')
+const ads = require('./ads.js');
+const api = require('./apiHandler.js');
+const xmlToJson = require('./genericXmlJson.js');
+const { resourceLimits } = require("worker_threads");
 
 let pages = [];
 let userPath;
@@ -421,29 +426,39 @@ async function playoutADS(){
 }
 
 async function createJpegADS(){
+  let adsErrorList = document.getElementById("ads-error-list");
+  adsErrorList.innerText = 'Attempting to create jpegs'
+  let adsVideo = document.getElementById("ads-video")
+  adsVideo.style.display = "none";
   let temp = await command.exportJpegFromFullDetailsFile(theSettings.adsFullDetailsFilenameUNC);
-  console.log(temp.theCommand.filenames);
-  await displayJpegADS(temp.theCommand.filenames);
+  console.log(temp);
+  let myResult = dealWithAnyErrors(temp);
+  adsErrorList.innerText = myResult.message.join('\r\n')
+  if (!myResult.hasError){
+    await displayJpegADS(temp.theCommand.filenames);
+  }
 }
 
 async function displayJpegADS(jpegFilenames){
   let jpg64
-  let target = document.getElementById('ads-jpeg');
+  let adsJpeg = document.getElementById('ads-jpeg');
+  adsJpeg.style.display = "block";
+  
   for (filename of jpegFilenames){
     jpg64 = await command.readJpeg(filename);
     if (jpegFilenames.indexOf(filename) == 0){
       if (jpg64 != ''){
         let image = '<img src="data:image/jpg;base64,' + jpg64 + '" />';
-        target.innerHTML = image;
+        adsJpeg.innerHTML = image;
       } else {
-        target.innerHTML = "<h1>No Jpeg for this page</h1>"
+        adsJpeg.innerHTML = "<h1>No Jpeg for this page</h1>"
       }
     } else {
       if (jpg64 != ''){
         let image = '<img src="data:image/jpg;base64,' + jpg64 + '" />';
-        target.insertAdjacentHTML('beforeend', image);  
+        adsJpeg.insertAdjacentHTML('beforeend', image);  
       } else {
-        target.innerHTML = "<h1>No Jpeg for this page</h1>"
+        adsJpeg.innerHTML = "<h1>No Jpeg for this page</h1>"
       }
     }
   }
@@ -452,28 +467,122 @@ async function displayJpegADS(jpegFilenames){
 
 let adsMp4Details = {}
 async function renderMp4ADS(){
+  let adsJpeg = document.getElementById('ads-jpeg');
+  adsJpeg.style.display = "none";
+  
+  let adsErrorList = document.getElementById("ads-error-list");
+  adsErrorList.innerText = 'Attempting to create mp4'
   //let temp = await command.exportMp4FromWorkfile(theSettings.adsWorkDetailsFilenameUNC); 
   let temp = await command.exportMp4FromFullDetailsFile(theSettings.adsFullDetailsFilenameUNC); 
   console.log(temp);
+  let myResult = dealWithAnyErrors(temp);
+  adsErrorList.innerText = myResult.message.join('\r\n')
   adsMp4Details.folder = temp.theCommand.renderFolder
   adsMp4Details.filename = temp.theCommand.renderFilename
+  let fullFilename = path.join(adsMp4Details.folder, adsMp4Details.filename);
+  if (fs.existsSync(fullFilename)){
+    let doWeContinue = await waitForFile(fullFilename, myResult.message, adsErrorList, 300, 200)
+    if (doWeContinue){
+      loadADSVideo(fullFilename);
+    }
+  } else {
+    myResult.message[0] = "Cannot find mp4 file";
+    adsErrorList.innerText = myResult.message.join('\r\n');
+  }
+  
 }
 
 function playMp4ADS(){
   playADSVideo(adsMp4Details.folder, adsMp4Details.filename);
 }
 
-function playADSVideo(folder, filename){
-  let videoFile = path.join(folder, filename);
-  console.log(videoFile);
-  if (videoFile){
-    let videoNode = document.getElementById('ads-player');
-    videoNode.src = videoFile;
-    let videoBlock = document.getElementById('ads-video')
-    videoBlock.style.display = "block";
-  }
+function waitForMP4(fullFilename, theMessages, theElement, bPlayWhenReady){
+  
+  let count = 0;
+  let sizeCount = 0;
+  let lastSize = 0;
+  let timeoutCount = 200;
+
+  // function creation
+  let interval = setInterval(function(){
+  
+      // increasing the count by 1
+      count += 1;
+      
+      // when count equals to timeout, stop the function
+      if(count === timeoutCount){
+          clearInterval(interval);
+          let myMessages = theMessages.slice();
+          myMessages.push('Creating the mp4 has timed out');
+          theElement.innerText = myMessages.join('\r\n');
+      } else {
+        let mySize = getFilesizeInBytes(fullFilename);
+        let myMessages = theMessages.slice();
+        if (mySize != 0){
+          myMessages.push("Filesize: "+ mySize);
+          theElement.innerText = myMessages.join('\r\n');
+        }
+        if (mySize !=0 && lastSize == mySize){
+          sizeCount += 1
+          if (sizeCount > 5){
+            clearInterval(interval);
+            let myMessages = theMessages.slice();
+            myMessages[0] = "MP4 ready";
+            theElement.innerText = myMessages.join('\r\n');
+            if (bPlayWhenReady){
+              loadADSVideo(fullFilename);
+            }
+          } else {
+            lastSize = mySize;
+          }
+        } else {
+          lastSize = mySize;
+          sizeCount = 0;
+        }
+      }
+  }, 300);
+
 }
 
+function loadADSVideo(fullFilename){
+  let videoNode = document.getElementById('ads-player');
+  videoNode.src = fullFilename;
+  let videoBlock = document.getElementById('ads-video')
+  videoBlock.style.display = "block";
+}
+
+function emptyADSVideo(){
+  let videoNode = document.getElementById('ads-player');
+  videoNode.src = '';
+  let videoBlock = document.getElementById('ads-video')
+  videoBlock.style.display = "none";
+}
+
+async function playADSVideo(folder, filename){
+  emptyADSVideo();
+  let adsJpeg = document.getElementById('ads-jpeg');
+  adsJpeg.style.display = "none";
+  let adsErrorList = document.getElementById("ads-error-list");
+  if (!folder ||!filename){
+    adsErrorList.innerText = 'No file for mp4'
+  } else {
+    let videoFile = path.join(folder, filename);
+    adsErrorList.innerText = 'Loading mp4'
+    let messages = ["Loading mp4"]
+    if (fs.existsSync(videoFile)){
+      let doWeContinue = await waitForFile(videoFile, messages, adsErrorList, 300, 200)
+      if (doWeContinue){
+        loadADSVideo(videoFile);
+      }
+    }
+  }
+  
+}
+function getFilesizeInBytes(filename) {
+  var stats = fs.statSync(filename);
+  var fileSizeInBytes = stats.size;
+  return fileSizeInBytes;
+}
 async function renderMp4(){
   let thePage = listboxPageNumber();
   console.log(thePage)
@@ -483,3 +592,176 @@ async function renderMp4(){
   console.log(temp);
 }
 
+function dealWithAnyErrors(temp){
+  let errorList = [];
+  let theMessage = {};
+  theMessage.time = new Date();
+  theMessage.workfile = theSettings.adsFullDetailsFilenameUNC;
+
+  if (temp.result[0].log[0].hasError){
+    theMessage.message = temp.theCommand.commandName + " has errors in: " + temp.result[0].log[0].eventName;
+    theMessage.errors = temp.result[0].log[0].theErrors
+    theMessage.hasError = true;
+    let someErrors = errorMessages.parseErrors(theMessage);
+    for (anError of someErrors){
+      if (anError != ''){
+        if (!errorList.includes(anError)){
+          errorList.push(anError);
+          errorList.sort();
+        }
+      }
+    }
+    errorList.unshift(theMessage.message);
+    return {message: errorList, hasError: true}
+  } else {
+    let statusList = [];
+    if (temp.theCommand.commandName == "Export JPEG from workfile"){
+      statusList.push("Files created");
+      for (aFile of temp.theCommand.filenames){
+        statusList.push(path.parse(aFile).base)
+      }
+    }
+    if (temp.theCommand.commandName == "Export mp4 from workfile"){
+      statusList.push("Creating MP4");
+      statusList.push(temp.theCommand.renderFilename);
+    }
+    
+    return {message: statusList, hasError: false}
+  }
+}
+
+async function getData(){
+/**
+ * @type {BackgroundMedia}
+ */
+
+
+  let adsErrorList = document.getElementById("ads-error-list");
+  adsErrorList.innerText = 'Attempting to create jpegs from API data'
+  let adsVideo = document.getElementById("ads-video")
+  adsVideo.style.display = "none";  
+
+
+  let background = await ads.readBackground(userPath);
+  let pageSettings = await ads.readPageSettings(userPath);
+  let myData = await api.httpGet(ads.url);
+  let jsonAds = xmlToJson.parseXML(myData);
+  console.log("JSON")
+  console.log(jsonAds);
+  
+  let pageNumber = jsonAds.media_files.item[0].page[0];
+
+  let theTemplate = await ads.findTemplate(userPath, jsonAds);
+
+  let ppwgFilename = await ads.createPPWG(userPath, jsonAds, pageSettings, pageNumber);
+  let messages = ["Creating ppwg"]
+  let doWeContinue = await waitForFile(ppwgFilename, messages, adsErrorList, 200, 200)
+  console.log(doWeContinue)
+  if (doWeContinue){
+    console.log("Ready for next bit")
+    let pageDetails = await ads.createPageDetails(userPath, jsonAds, theTemplate, pageSettings, pageNumber);
+    console.log("PageDetails")
+    console.log(pageDetails);
+    let jpegDetails = await ads.createJpegDetails(userPath, jsonAds, pageSettings, pageNumber);
+    console.log("Jpeg Details");
+    console.log(jpegDetails);
+    let renderDetails = await ads.createRenderDetails(userPath, jsonAds, theTemplate);
+    console.log("Render Details");
+    console.log(renderDetails);
+    
+    let fullDetails = {};
+    fullDetails = background
+    fullDetails.pageDetails = pageDetails;
+    fullDetails.jpegDetails = jpegDetails;
+    fullDetails.renderDetails = renderDetails;
+    fullDetails.ppwgFilename = ppwgFilename;
+
+    console.log("Full Details");
+    console.log(fullDetails);
+
+    let mediaFilenames = await ads.mediaFields(userPath, jsonAds, true);
+    let missingFiles = ads.missingMediaFiles(mediaFilenames);
+    let success = await ads.copyMissingFiles(userPath, missingFiles);
+
+    if (success){
+      let temp = await command.exportJpegFromFullDetails(fullDetails);
+      console.log(temp);
+      let myResult = dealWithAnyErrors(temp);
+      adsErrorList.innerText = myResult.message.join('\r\n')
+      if (!myResult.hasError){
+        await displayJpegADS(temp.theCommand.filenames);
+      }
+    }
+    
+  }
+  
+}
+
+async function fileSizeSettled(fullFilename, lastSize, sizeCount){
+  let result = {}
+  if (fs.existsSync(fullFilename)){
+    let mySize = getFilesizeInBytes(fullFilename);
+    console.log(mySize);
+    result.lastSize = mySize;
+    result.sizeCount = sizeCount;
+    if (mySize !=0 && lastSize == mySize){
+      sizeCount += 1;
+      result.sizeCount = sizeCount;
+      console.log(sizeCount);
+      if (sizeCount > 5){
+        result.done = true
+      } else{
+        result.done = false
+      }
+    } else {
+      result.done = false
+      result.sizeCount = 0;
+    }
+  } else {
+    result.done = false
+    result.sizeCount = 0;
+    result.lastSize = 0;
+    console.log('No File')
+  }
+  return result
+}
+
+async function asyncInterval(callback, fullFilename, theMessages, theElement, ms, triesLeft = 200){
+  let myResult = {};
+  myResult.lastSize = 0;
+  myResult.sizeCount = 0;
+  return new Promise((resolve, reject) => {
+    const interval = setInterval(async () => {
+      myResult = await callback(fullFilename, myResult.lastSize, myResult.sizeCount)
+      let myMessages = theMessages.slice();
+      myMessages.push("Filesize: "+ myResult.lastSize);
+      theElement.innerText = myMessages.join('\r\n');
+      console.log(myResult);
+      if (myResult.done) {
+        resolve();
+        clearInterval(interval);
+        let myMessages = theMessages.slice();
+        myMessages.push("File ready");
+        theElement.innerText = myMessages.join('\r\n');
+      } else if (triesLeft <= 1) {
+        reject();
+        clearInterval(interval);
+        let myMessages = theMessages.slice();
+        myMessages.push("File timeout");
+        theElement.innerText = myMessages.join('\r\n');
+      }
+      triesLeft--;
+    }, ms);
+  });
+}
+
+async function waitForFile(fullFilename, theMessages, theElement, msInterval, triesLeft){
+  try {
+    console.log(await asyncInterval(fileSizeSettled, fullFilename, theMessages, theElement, msInterval, triesLeft));
+  } catch (e) {
+    console.log("Error");
+    return false
+  }
+  console.log("Done!");
+  return true
+}
