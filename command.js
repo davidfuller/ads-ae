@@ -128,10 +128,49 @@ async function playPagePpwg(ppwgData, jobPath, triggerId, subDevice, playNow, ti
     
   let assetString = xmlStrings.ppwgToAsset(jobPath, ppwgData);
   let pageXML = xmlStrings.createPageXML(assetString, triggerId, playNow, timecode);
+  console.log('Cue Page XML');
+  console.log(pageXML);
   
   result.push(await genericSendCommand(pageXML, subDevice, 'Cue Page PPWG'));
 
   return result;
+}
+
+/**
+ * 
+ * @param {number} subDevice 
+ * @returns {CommandResponse[]}
+ */
+async function clearKeyer(subDevice){
+  /**
+   * @type {CommandResponse[]}
+  */
+  let result = [];
+  let pageXML = xmlStrings.createClearKeyerXML();
+  console.log(pageXML);
+  result.push(await genericSendCommand(pageXML, subDevice, 'Clear Keyer'));
+
+  return result;
+}
+
+/**
+ * 
+ * @param {number} subDevice 
+ * @param {string} triggerId
+ * @returns {CommandResponse[]}
+ */
+
+async function eventAbort(subDevice, triggerId){
+  /**
+   * @type {CommandResponse[]}
+  */
+   let result = [];
+   let abortXML = mediaPlayer.abortEvent(triggerId);
+   console.log(abortXML);
+   result.push(await genericSendCommand(abortXML, subDevice, 'Abort Event'));
+ 
+   return result;
+ 
 }
   
   /**
@@ -353,22 +392,37 @@ async function genericSendCommand(commandXML, subDevice, logName){
      * @type {CommandResponse}
      */
     let response = {}
+    let result;
+      
+    try{
+      let eventGeneric = new events.EventEmitter();
+      await comms.sendCommand(commandXML, eventGeneric, subDevice);
+      console.log("After sendCommand")
+      
+      result = await waitForEvent(eventGeneric, 'closed');
+      console.log("Got result")
+      console.log(result)
+      
+     
+      eventGeneric.removeAllListeners('closed');
+    
+      let temp = xmlToJson.parseXML(result);
+      theLog.push(pixelLog.pixelLog(temp, logName));
+    
+      response.xml = result
+      response.log = theLog
   
-    let eventGeneric = new events.EventEmitter();
-    comms.sendCommand(commandXML, eventGeneric, subDevice);
-    let result = await waitForEvent(eventGeneric, 'closed');
-    eventGeneric.removeAllListeners('closed');
-  
-    let temp = xmlToJson.parseXML(result);
-    theLog.push(pixelLog.pixelLog(temp, logName));
-  
-    response.xml = result
-    response.log = theLog
-  
+    } catch (myError){
+      if (myError.code == 'ECONNREFUSED'){
+        theLog.push(pixelLog.connectionErrorLog(logName, subDevice))
+        response.xml = "";
+        response.log = theLog;
+      }
+    }
     return response;
   }
 
-function waitForEvent(emitter, event){
+async function waitForEvent(emitter, event){
     return new Promise((resolve, reject) => {
         emitter.once(event, resolve);
         emitter.once("error", reject);        
@@ -409,6 +463,7 @@ async function readWorkDetails(filename){
   let server = netSMB2.findMyServer(filename);
   server.ipShare = await netSMB2.getIPShare(server);
   let path = netSMB2.findMyPath(filename);
+  console.log(path);
   let xmlString = await netSMB2.readXML(server, path);
   return xmlString;
 }
@@ -560,12 +615,33 @@ async function exportJpegFromFullDetailsFile(fullDetailsFilenameUNC){
   let xmlString = await readPPWG(myJpegDetails.ppwgFilename);
   theCommand.ppwgFilename = myJpegDetails.ppwgFilename;
   myPageDetails = xmlStrings.pageDetailsFromPPWG(xmlString, myPageDetails);
-  theCommand.pageNumber = myFullDetails.txPageNumber
+  theCommand.pageNumber = myPageDetails.page
+  console.log("++++++++++++++++++++")
+  console.log(theCommand.pageNumber);
   result.push(...await exportJpegsFromPPWG(myPageDetails, myJpegDetails));
   let jpegResult = await extractImages(result[0].xml, myJpegDetails.filenameBase)
   theCommand.filenames = jpegResult; 
   return {result: result, theCommand: theCommand};
 }
+
+async function exportJpegFromFullDetails(fullDetails){
+  let theCommand  = {}
+  let result = [];
+  theCommand.commandName = 'Export JPEG from workfile'
+  let myFullDetails = fullDetails
+  let myPageDetails = myFullDetails.pageDetails;
+  let myJpegDetails = myFullDetails.jpegDetails;
+  let xmlString = await readPPWG(myJpegDetails.ppwgFilename);
+  theCommand.ppwgFilename = myJpegDetails.ppwgFilename;
+  myPageDetails = xmlStrings.pageDetailsFromPPWG(xmlString, myPageDetails);
+  theCommand.pageNumber = myPageDetails.page
+  result.push(...await exportJpegsFromPPWG(myPageDetails, myJpegDetails));
+  let jpegResult = await extractImages(result[0].xml, myJpegDetails.filenameBase)
+  theCommand.filenames = jpegResult; 
+  return {result: result, theCommand: theCommand};
+}
+
+
 
 
 /**
@@ -682,10 +758,16 @@ async function exportMp4FromFullDetailsFile(fullDetailsFilenameUNC){
     myPageDetails = xmlStrings.pageDetailsFromPPWG(xmlString, myPageDetails);
     console.log(theSettings.currentConfig)
     theSettings.blackDetails.startTimecode = tc.timecodeAdd(myPageDetails.startTimecode, myPageDetails.eom)
+    //let clearResult = await clearKeyer(theSettings.currentConfig.playoutSubDevice);
+    //console.log('Clear Keyer');
+    //console.log(clearResult);
     let testResult = await cuePagePpwg(xmlString, myPageDetails.jobPath, myPageDetails.triggerId, theSettings.currentConfig.playoutSubDevice, false, '');
     if (hasAnyErrors(testResult)){
       result = testResult
     } else {
+      console.log('Event Abort');
+      let abortResult = await eventAbort(theSettings.currentConfig.playoutSubDevice, myPageDetails.triggerId);
+      console.log(abortResult);
       if (createMp4FolderIfNotExist(myRenderDetails.folder)){
         result = await command.renderMovie(theSettings.currentConfig, myBackgroundMedia, myPageDetails, theSettings.blackDetails, myRenderDetails, myPpwlDetails); 
       }
@@ -833,4 +915,4 @@ async function readFullDetails(filename){
 }
 
 module.exports = {playBlack, playTest, playOutOverTest, playOut, playoutPageNumber, playoutPageNumberOverTest, getPageNumberAndNameDetails, readJpeg, readDirectory, clearJpegFolder, exportJpegFromWorkfile, 
-                  exportMp4FromWorkfile, renderMovie, pageDetailsDescription, playOutFromFullDetails, exportJpegFromFullDetailsFile, exportMp4FromFullDetailsFile}
+                  exportMp4FromWorkfile, renderMovie, pageDetailsDescription, playOutFromFullDetails, exportJpegFromFullDetailsFile, exportMp4FromFullDetailsFile, eventAbort, exportJpegFromFullDetails}
