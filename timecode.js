@@ -2,6 +2,7 @@ const fps = 25;
 const zeroPad = (num, places) => String(num).padStart(places, '0');
 
 function timecodeAdd(timecode1, timecode2){
+  
   return framesToTimecodeString(timecodeStringToFrames(timecode1) + timecodeStringToFrames(timecode2))
 }
 
