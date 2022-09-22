@@ -64,11 +64,14 @@
         <button id="other-button" onclick="playoutPageWorkfile()">Playout workfile</button>
       </div>
       <div id="ads" style="display: none;">
-        <h1 id="ads-description">Hello</h1>
         <button id="ads-button" onclick="playoutADS()">Playout ADS</button>
         <button id="ads-button" onclick="createJpegADS()">Create Jpeg ADS</button>
         <button id="ads-button" onclick="renderMp4ADS()">Create mp4 ADS</button>
         <button id="ads-button" onclick="playMp4ADS()">Play mp4 ADS</button>
+        <button id="ads-button" onclick="getData()">Get the data</button><br/>
+        <h2 id="ads-heading">ADS Name:</h2>
+        <h2 id="ads-description"></h2>
+        <div id="ads-error-list">Status</div>
         <div id ="ads-jpeg"></div>
         <div id="ads-video" style="display: none;">
           <video id="ads-player" controls autoplay>
