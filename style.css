@@ -157,6 +157,45 @@ button {
   white-space: pre-line;
 }
 
+#ads-error-list {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 14px;
+  color: dodgerblue;
+  margin-left: 50px;
+  margin-top: 10px;
+  width: 80%;
+  padding: 15px;
+  white-space: pre-line;
+  border-width: 1px;
+  border-radius: 5px;
+  border-color: dodgerblue;
+  border-style: solid;
+}
+
+div #ads-jpeg {
+  margin-top: 10px;
+}
+
+#ads-button {
+  margin-bottom: 20px;
+}
+
+#ads-description{
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 20px;
+  font-weight: bold;
+  color: dodgerblue;
+  display: inline;
+}
+#ads-heading{
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 20px;
+  font-weight: normal;
+  color: dodgerblue;
+  margin-top: 20px;
+  margin-left: 50px;
+  display: inline;
+}
 #status{
   left: 150px;
 }
@@ -233,7 +272,8 @@ video {
 }
 
 video#ads-player {
-  width: 1920px;
+  margin-top: 20px;
+  width: 90%;
   height: auto;
 }
 
