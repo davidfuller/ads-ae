@@ -15,10 +15,17 @@ const commandPort = [0, 10220, 17020];
   var num = 0;
   var delimiter = '</PixelXML>'
   var theData = "";
+  try{
+    console.log('Before connect');
+    client.connect(commandPort[subDevice], ip, function() {
+      console.log("I got here")
+      client.write(theCommand);
+    });
+  }
+  catch(err){
+    console.log(err)
+  }
 
-  client.connect(commandPort[subDevice], ip, function() {
-    client.write(theCommand);
-  });
 
   client.on('data', function(data) {
     //console.log('Received: ' + data);
@@ -33,6 +40,9 @@ const commandPort = [0, 10220, 17020];
     theEvent.emit('closed', theData)
   });
 
+  client.on('error', function(myError){
+    theEvent.emit('error', myError);
+  });
 }
 
 
