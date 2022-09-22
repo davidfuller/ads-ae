@@ -84,6 +84,16 @@ function systemTrigger(triggerID){
 }
 
 /**
+ * 
+ * @param {string} triggerID 
+ * @returns {string}
+*/
+
+function eventAbort(triggerID){
+  return '<CancelSystemTrigger Category="Timeline" Device="System"><TriggerID>' + triggerID + '</TriggerID></CancelSystemTrigger>';
+}
+
+/**
  * @param {string} jobPath
  * @param {string} xmlString 
  * @returns {string}
@@ -111,6 +121,7 @@ function systemTrigger(triggerID){
  * @param {string} trigger 
  * @param {boolean} playNow
  * @param {string} timecode
+ * @returns {string}
 */
 function createPageXML(xmlString, triggerId, playNow, timecode){
 
@@ -132,6 +143,34 @@ function createPageXML(xmlString, triggerId, playNow, timecode){
 
   return tempXML;
 }
+
+/**
+ * 
+ * @returns {string}
+*/
+function createClearKeyerXML(){
+
+  /**
+   * @type {string}
+   */
+  var tempXML;
+
+  tempXML = root.open + setLayerState.open
+  tempXML += layerStateChange.open;
+  tempXML += layer('Program', "V", '1');
+  tempXML += state('false').open
+  tempXML += source('BLACK',"","0")
+  tempXML += state().close; 
+  tempXML += layerStateChange.close;
+  tempXML += setLayerState.close;
+  tempXML += root.close;
+
+  return tempXML;
+}
+
+
+
+
 
 /**
  * 
@@ -470,7 +509,43 @@ function renderToFile(renderDetails){
   return tempXML;
 }
 
+/**
+ * 
+ * @param {object} pageSettings 
+ * @param {string} pageNumber 
+ * @param {object []} fieldData 
+ * @returns {string}
+ */
+
+function createPPWG(pageSettings, pageNumber, fieldData){
+  let xmlString =  '<?xml version="1.0" encoding="UTF-8"?>\n';
+  xmlString += '<MediaContainer xmlns="http://pixelpower.com/PixelXML" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">\n'
+  xmlString += '  <Video FileName="' + pageSettings.jobName + '\\' + pageNumber + '">\n';
+  xmlString += overrideFieldData(fieldData);
+  xmlString += '  </Video>\n';
+  xmlString += '</MediaContainer>\n';
+
+  return xmlString
+}
+
+function overrideFieldData(fieldData){
+  let xmlString = '    <OverrideData>\n';
+  for (theField of fieldData){
+    xmlString += '      <Field Number="' + theField.fieldNumber + '">' + htmlSpecialChars(theField.value) + '</Field>\n';
+  }
+  xmlString += '    </OverrideData>\n';
+  return xmlString;
+}
+
+function htmlSpecialChars(unsafe) {
+  return unsafe
+  .replace(/&/g, "&amp;")
+  .replace(/</g, "&lt;")
+  .replace(/>/g, "&gt;")
+  .replace(/"/g, "&quot;")
+  .replace(/'/g, "&apos;");
+}
 
 module.exports = {root, setLayerState, doTrigger, layerStateChange, layer, state, source, systemTrigger, ppwgToAsset, createPageXML, createPpwlXML, attachMedia, media, playMedia, pageDetailsFromPPWG, imageXMLPPWG, imageDataTag, abortRender,
                     getRenderProfile, cancelSystemTrigger, triggerIdRange, detachMedia, setConfigMerge, mediaPipelineConfig, mediaPipelineInput, mediaPipelineOutput, attachRenderBackgroundMedia, deferPlay, renderLayerStateChange, 
-                    blackRenderLayerStateChange, deferTriggerToTimecode, attachPageMedia, attachPpwlMedia, renderToFile}
+                    blackRenderLayerStateChange, deferTriggerToTimecode, attachPageMedia, attachPpwlMedia, renderToFile, createClearKeyerXML, eventAbort, createPPWG, overrideFieldData}
