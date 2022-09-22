@@ -38,5 +38,36 @@
   
     return result;
   }
+
+/**
+ * 
+ * @param {string} name 
+ * @returns {StreamMasterLog}
+ */
+  function connectionErrorLog(name, subDevice){
+    /**
+     * @type {StreamMasterLog}
+     */
+     let result = {};
   
-  module.exports = {pixelLog};
+     /**
+      * @type {PixelError}
+      */
+     let myError = {};
+   
+     result.eventName = name;
+     result.logTime = new Date();
+     result.theErrors = [];
+
+     result.hasError = true;
+     myError.errorNumber = 11021960;
+     myError.errorDescription = "Connection issue with sub-device: " + subDevice + ". Is StreamMaster running?";
+     result.theErrors.push({...myError});
+
+     return result;
+  }
+
+
+
+  
+  module.exports = {pixelLog, connectionErrorLog};
