@@ -214,6 +214,27 @@ async function writeJpeg(serverDetails, path, buffer){
   }
 }
 
+async function writeXML(serverDetails, path, xml){
+
+  await deleteFile(serverDetails, path)
+  let client = await getServer(serverDetails)
+  if (client != null){
+    try {
+      if (await createPathIfNotExist(path, client)){
+        let result = await client.writeFile(path, xml);
+        return result;
+      }
+    }
+    catch(err){
+      console.log(err)
+      return null;
+    }
+  } else {
+    return null;
+  }
+}
+
+
 async function deleteFile(serverDetails, path){
   let client = await getServer(serverDetails)
   if (client != null){
@@ -262,4 +283,4 @@ function splitPath(path){
   return thePaths 
 }
 
-module.exports = {findMyServer, getIPShare, findMyPath, readJson, readXML, readDir, readJpeg, writeJpeg, splitPath, deleteFile, getServer, createPathIfNotExist}
+module.exports = {findMyServer, getIPShare, findMyPath, readJson, readXML, readDir, readJpeg, writeJpeg, splitPath, deleteFile, getServer, createPathIfNotExist, writeXML}
