@@ -47,6 +47,23 @@ var tempXML;
 }
 /**
  * 
+ * @param {string} triggerId 
+ * @returns {string}
+*/
+function abortEvent(triggerId){
+  var tempXML;
+
+  tempXML = xmlStrings.root.open;
+  tempXML += xmlStrings.eventAbort(triggerId);
+  tempXML += xmlStrings.root.close;
+
+  return tempXML;
+
+}
+
+
+/**
+ * 
  * @param {BackgroundMedia} myMedia 
  * @param {string} loop 
  * @returns {string}
@@ -86,4 +103,4 @@ function mediaPlay(triggerId, playerId, playNow, timecode){
 }
 
 
-  module.exports = {setLayerStates, triggerPlay, attachMedia, mediaPlay}
+  module.exports = {setLayerStates, triggerPlay, attachMedia, mediaPlay, abortEvent}
