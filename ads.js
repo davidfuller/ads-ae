@@ -176,6 +176,7 @@ async function createAeJson(userPath, jsonAds, theTemplate, theSettings, renderD
   fields["textFilename"] = renderDetails.textFilename;
   fields["aeRenderFolder"] = renderDetails.aeRenderFolder;
   fields["aePackageFolder"] = renderDetails.aePackageFolder;
+  fields["aeProResFolder"] = renderDetails.aeProResFolder;
   
   let specials = {}
   specials["specials"] = {};
@@ -318,6 +319,7 @@ async function createRenderDetails(userPath, jsonAds, theTemplate){
   renderDetails.filePattern = sanitisedName(jsonAds) + renderSettings.filenameSuffix
   renderDetails.aeRenderFolder = renderSettings.aeRenderFolder;
   renderDetails.aePackageFolder = renderSettings.aePackageFolder;
+  renderDetails.aeProResFolder = renderSettings.aeProResFolder;
   renderDetails.aeMp4Filename = sanitisedName(jsonAds) + ".mp4"
   renderDetails.aeAviFilename = sanitisedName(jsonAds) + ".avi"
   renderDetails.aeProResFilename = sanitisedName(jsonAds) + ".mov"
