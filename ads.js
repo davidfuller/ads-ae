@@ -3,8 +3,12 @@ const fs = require('fs');
 const fspromises = require('fs').promises;
 const xmlString = require('./xmlStrings.js');
 const net = require('./netSMB2.js');
-const tc = require('./timecode.js')
-let url ='http://10.254.31.52/media_files/recent.xml?not_loaded=true&pos=1'
+const tc = require('./timecode.js');
+const api = require('./apiHandler.js');
+const xmlToJson = require('./genericXmlJson.js');
+
+//let url ='http://10.254.31.52/media_files/recent.xml?not_loaded=true&pos=1'
+let url ='http://192.168.1.109:3010/media_files/recent.xml?not_loaded=true&pos=1'
 
 /**
  * 
@@ -59,6 +63,24 @@ async function readTemplates(userPath){
   let data = await fspromises.readFile(filename);
   return JSON.parse(data);
 }
+
+/**
+ * 
+ * @param {string} userPath 
+ * @returns {object}
+ */
+ async function readServerSettings(userPath, server){
+  let filename;
+  if (server == "test"){
+    filename = path.join(userPath, 'ads', 'server_dunmow.json');
+  } else {
+    filename = path.join(userPath, 'ads', 'server_chiswick.json');
+  }
+  
+  let data = await fspromises.readFile(filename);
+  return JSON.parse(data);
+}
+
 /**
  * 
  * @param {string} userPath 
@@ -84,6 +106,8 @@ async function parsedFieldData(userPath, jsonAds, isPrep){
     temp.value = thefield.value[0].replace("|-|","").trim().replace(pageSettings.clarityAssetsFolder,pageSettings.createAssetsFolder);
     myFields.push(temp);
   }
+  console.log("Is Prep");
+  console.log(isPrep);
   if (isPrep){
     let jpegSettings = await readJpegSettings(userPath);
     let temp = {}
@@ -96,6 +120,128 @@ async function parsedFieldData(userPath, jsonAds, isPrep){
   console.log(myFields);
   return myFields;
 }
+
+async function createAeJson(userPath, jsonAds, theTemplate, theSettings, renderDetails){
+  let theFields = await parsedFieldData(userPath, jsonAds, false);
+  let fields = {}
+  let media = [];
+  for (var i = 0; i < theFields.length; i++){
+    let fieldNumber = theFields[i].fieldNumber;
+    let fieldName = findAeFieldname(theTemplate, fieldNumber);
+    if (fieldName != undefined){
+      if (fieldName.hasMedia){
+        fields[fieldName.name] = path.basename(theFields[i].value);
+        media.push(theFields[i].value);
+      } else {
+        fields[fieldName.name] = theFields[i].value;
+      }
+    }
+  }
+
+  console.log("JSON ADS")
+  console.log(jsonAds)
+
+  let missing = missingAEFields(fields, theTemplate);
+
+  for (var i = 0; i < missing.length; i ++){
+    fields[missing[i].name] = "";
+  }
+  let jsonData = jsonAds.media_files.item[0];
+  fields["name"] = jsonData.name[0];
+
+  console.log('Package present');
+  console.log('package_filename' in jsonData);
+
+  if ('package_filename' in jsonData){
+    fields["packageFilename"] = jsonAds.media_files.item[0].package_filename[0];
+  } else {
+    fields["packageFilename"] = "";
+  }
+
+  console.log('Sports IPP');
+  console.log('sports_ipp' in jsonData);
+
+  if ('sports_ipp' in jsonData){
+    fields["sportsIpp"] = jsonAds.media_files.item[0].sports_ipp[0];
+  } else {
+    fields["sportsIpp"] = false;
+  }
+
+
+  let dateString = new Date().toISOString().replace(/T|:|-/g, '_').substring(0, 19)
+  fields["renderFilename"] = renderDetails.filePattern.replace('%d', dateString);
+  fields["aeMp4Filename"] = renderDetails.aeMp4Filename;
+  fields["aeAviFilename"] = renderDetails.aeAviFilename;
+  fields["aeProResFilename"] = renderDetails.aeProResFilename;
+  fields["textFilename"] = renderDetails.textFilename;
+  fields["aeRenderFolder"] = renderDetails.aeRenderFolder;
+  fields["aePackageFolder"] = renderDetails.aePackageFolder;
+  
+  let specials = {}
+  specials["specials"] = {};
+  specials["specials"][theTemplate.template.aeName] = fields;
+  console.log(specials);
+  let theFilename = theTemplate.template.aeName + ".json";
+  console.log(theFilename);
+  let result = await saveAeJson(specials, theSettings, theFilename);
+
+  return {specials: specials, media: media, filename: theFilename, saved: result};
+
+}
+
+function findAeFieldname(theTemplate, fieldNumber){
+  let aeFields = theTemplate.template.aeFields;
+  return aeFields[fieldNumber];
+}
+
+function missingAEFields(currentFields, theTemplate){
+  let aeFields = theTemplate.template.aeFields;
+  let missing = [];
+  for (const item in aeFields){
+    console.log(item);
+    let found = false;
+    for (const field in currentFields){
+      if (field == aeFields[item].name){
+        found = true;
+        break;
+      }
+    }
+    if (!found){
+      missing.push(aeFields[item]);
+    }
+  }
+  console.log("Missing");
+  console.log(missing);
+  return missing;
+}
+
+async function saveAeJson(specials, theSettings, theFilename){
+  let filename = theSettings.aeSpecialsJsonFolderUNC + theFilename;
+  let server = net.findMyServer(filename);
+  server.ipShare = await net.getIPShare(server);
+  let myPath = net.findMyPath(filename)
+  let result = await net.writeJson(server, myPath, specials)
+  console.log(result)
+  return result;
+}
+
+async function updateAeJobFile(specials, theTemplate, renderDetails){
+  let filename = theSettings.aeJobFileUNC;
+  let server = net.findMyServer(filename);
+  server.ipShare = await net.getIPShare(server);
+  let myPath = net.findMyPath(filename)
+  jobDetails = await net.readJson(server, myPath);
+  console.log("jobDetails");
+  console.log(jobDetails.actions.postrender[0].output);
+  console.log(specials["specials"][theTemplate.template.aeName]["renderFilename"]);
+  console.log(renderDetails)
+  jobDetails.actions.postrender[0].output = renderDetails.aeRenderFolder + specials["specials"][theTemplate.template.aeName]["renderFilename"];
+  jobDetails.template.composition = theTemplate.template.aeName;
+  console.log(jobDetails);
+  let result = await net.writeJson(server, myPath, jobDetails);
+  return result;
+}
+
 async function createPPWG(userPath, jsonAds, pageSettings, pageNumber){
 
   for (let doPrep = 0; doPrep <= 1; doPrep++){
@@ -110,6 +256,7 @@ async function createPPWG(userPath, jsonAds, pageSettings, pageNumber){
 }
 
 function createPpwgFilename(pageSettings, pageNumber, isPrep){
+  
   if (isPrep){
     return path.join(pageSettings.ppwgFolder, path.parse(pageSettings.jobName).name + "_" + pageNumber + '_Prep.ppwg');
   } else {
@@ -169,7 +316,13 @@ async function createRenderDetails(userPath, jsonAds, theTemplate){
   renderDetails.profileName = renderSettings.profileName;
   renderDetails.folder = renderSettings.folder;
   renderDetails.filePattern = sanitisedName(jsonAds) + renderSettings.filenameSuffix
-
+  renderDetails.aeRenderFolder = renderSettings.aeRenderFolder;
+  renderDetails.aePackageFolder = renderSettings.aePackageFolder;
+  renderDetails.aeMp4Filename = sanitisedName(jsonAds) + ".mp4"
+  renderDetails.aeAviFilename = sanitisedName(jsonAds) + ".avi"
+  renderDetails.aeProResFilename = sanitisedName(jsonAds) + ".mov"
+  renderDetails.textFilename = sanitisedName(jsonAds) + ".txt"
+ 
   return renderDetails;
 }
 
@@ -200,30 +353,117 @@ function missingMediaFiles(mediaFilenames){
   return missingFiles;
 }
 
-async function copyMissingFiles(userPath, missingFiles){
+async function copyAeMediaFiles(userPath, aeMediaFiles){
   let pageSettings = await readPageSettings(userPath);
   let result = true;
+  let messages = [];
+  let destinationFile;
+
+  for (let sourceFile of aeMediaFiles){
+    if (fs.existsSync(sourceFile)){
+      if (sourceFile.toUpperCase().startsWith(pageSettings.createLogoFolder.toUpperCase())){
+        destinationFile = sourceFile.replace(pageSettings.createLogoFolder, pageSettings.aeLogoFolder);
+      } else if (sourceFile.toUpperCase().startsWith(pageSettings.createPromoFolder.toUpperCase())){
+        destinationFile = sourceFile.replace(pageSettings.createPromoFolder, pageSettings.aePromoFolder);
+      }
+      console.log(destinationFile)
+      if (fs.existsSync(destinationFile)){
+        console.log("Already exists: " + destinationFile);
+      } else {
+        try{
+          await fspromises.copyFile(sourceFile, destinationFile);
+          messages.push("AE file copied: " + destinationFile);
+          console.log("AE Copied: " + destinationFile);
+        } catch (e){
+          messages.push("Error in AE copy for file: " + destinationFile);
+          result = false;
+        }
+      }      
+    } else {
+      console.log("No source file");
+      messages.push("Cannot find sourcefile: " + sourceFile)
+      result = false;
+    }
+  }
+  console.log("AE Copy File Messages");
+  console.log(messages);
+  return {result: result, messages: messages};
+}
+
+async function copyMissingFiles(userPath, missingFiles, isTestServer){
+  let pageSettings = await readPageSettings(userPath);
+  let result = true;
+  let messages = [];
+  let sourceFile;
   for (let destinationFile of missingFiles){
-    let sourceFile = destinationFile.replace(pageSettings.createAssetsFolder, pageSettings.sourceAssetsFolder);
+    if (isTestServer){
+      sourceFile = destinationFile.replace(pageSettings.createAssetsFolder, pageSettings.testSourceAssetsFolder);
+    } else {
+      sourceFile = destinationFile.replace(pageSettings.createAssetsFolder, pageSettings.sourceAssetsFolder);
+    }
+    
     console.log(sourceFile);
     if (fs.existsSync(sourceFile)){
       console.log ("Found");
       try{
         await fspromises.copyFile(sourceFile, destinationFile);
-        console.log("Copied")
-        result = true;
+        messages.push("File copied: " + destinationFile)
       } catch (e){
         console.log ("Not copied");
+        messages.push("Error in copy for file: " + destinationFile)
         result = false;
       }
     } else {
       console.log("No source file");
+      messages.push("Cannot find sourcefile: " + sourceFile)
       result = false;
     }
   }
-  return result;
+  return {result: result, messages: messages};
 }
 
+async function copyMp4ToServer(fullFilename, jsonAds, serverSettings){
+  let result = false
+  let destinationFile = path.join(serverSettings.specialWatchFolder, jsonAds.media_files.item[0].filename[0]);
+  let message;
+  console.log (destinationFile);
+  if (fs.existsSync(fullFilename)){
+    try{
+      await fspromises.copyFile(fullFilename, destinationFile);
+      console.log("Copied")
+      message = "Mp4 copied: " + jsonAds.media_files.item[0].filename[0];
+      result = true;
+    } catch (e){
+      console.log ("Not copied");
+      message = "Error copying: " + jsonAds.media_files.item[0].filename[0];
+      result = false;
+    }
+  } else {
+    console.log("No source file");
+    message = "Cannot find source file: " + fullFilename;
+    result = false;
+  }
+  return {result: result, message: message}
+}
 
+async function sendFileQueuedToWebApp(originalFilename, jsonAds, serverSettings){
+  let theUrl = serverSettings.queue_url.replace("|id|", jsonAds.media_files.item[0].id[0]).replace("|filename|", encodeURIComponent(originalFilename));
+  let myData;
+  let result;
+  let message;
+  try {
+    myData = await api.httpGet(theUrl);
+    console.log (xmlToJson.parseXML(myData));
+    message = "File queued in web app";
+    result = true
+  } catch (e) {
+    message = "Failed to queue file in web app";
+    result = false;
+  }
+  
+  return {result: result, message: message};
+  
+}
 
-module.exports = {readBackground, url, readTemplates, findTemplate, parsedFieldData, createPPWG, createPageDetails, createJpegDetails, createRenderDetails, createPpwgFilename, readPageSettings, mediaFields, missingMediaFiles, copyMissingFiles}
+module.exports = {readBackground, readTemplates, findTemplate, parsedFieldData, createPPWG, createPageDetails, createJpegDetails, createRenderDetails, createPpwgFilename, readPageSettings, mediaFields, 
+  missingMediaFiles, copyMissingFiles, readServerSettings, sanitisedName, copyMp4ToServer, sendFileQueuedToWebApp, createAeJson, copyAeMediaFiles, updateAeJobFile}

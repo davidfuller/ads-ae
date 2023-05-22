@@ -15,6 +15,7 @@
         <button id="switcher-button" onclick="generateJpegs()">Generate</button>
         <button id="switcher-button" onclick="displayOther()">Other</button>
         <button id="switcher-button" onclick="displayADS()">ADS</button>
+        <button id="switcher-button" onclick="displayAdsAe()">ADS-AE</button>
       </div>
       <div id="read-buttons" style="display: block;">
         <button onclick="reloadThePages()">Reload Pages</button>
@@ -68,9 +69,23 @@
         <button id="ads-button" onclick="createJpegADS()">Create Jpeg ADS</button>
         <button id="ads-button" onclick="renderMp4ADS()">Create mp4 ADS</button>
         <button id="ads-button" onclick="playMp4ADS()">Play mp4 ADS</button>
-        <button id="ads-button" onclick="getData()">Get the data</button><br/>
+        <button id="ads-button" onclick="getData(false)">Get the data</button>
+        <button id="ads-button" onclick="getData(true)">Get the data (AE Only)</button>
+      </div>
+      <div id="ads-ae" style="display: none;">
+        <button id="ads-button" onclick="getData(true)">Get data</button>
+      </div>
+      <div id="ads-common" style="display: none;">
+        <label for "server-choice" id="ads-label">Server</label>
+        <select name="server-choice" id="ads-server">
+          <option value="live">Live</option>
+          <option value="test">Test</option>
+        </select> 
+        <br/>
         <h2 id="ads-heading">ADS Name:</h2>
         <h2 id="ads-description"></h2>
+        <div id="ads-after-effects"></div><br/>
+        <div id="ads-url"></div>
         <div id="ads-error-list">Status</div>
         <div id ="ads-jpeg"></div>
         <div id="ads-video" style="display: none;">
