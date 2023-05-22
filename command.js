@@ -778,6 +778,50 @@ async function exportMp4FromFullDetailsFile(fullDetailsFilenameUNC){
   return {result: result, theCommand: theCommand};
 }
 
+async function exportMp4FromFullDetails(myFullDetails){
+  let theCommand  = {};
+  let result = [];
+  theCommand.commandName = 'Export mp4 from workfile';
+  if (myFullDetails != null){
+    let myRenderDetails = myFullDetails.renderDetails;
+    let myPageDetails = myFullDetails.pageDetails;
+    let myBackgroundMedia = myFullDetails.backgroundDetails;
+    let myPpwlDetails = []
+    if (myFullDetails.ppwlDetailsFilename != '' && myFullDetails.ppwlDetailsFilename != undefined){
+      myPpwlDetails = await readPpwlDetails(myFullDetails.ppwlDetailsFilename)
+    }
+    let dateString = new Date().toISOString().replace(/T|:|-/g, '_').substring(0, 19)
+    console.log(" This should be interesting");
+    console.log(myRenderDetails.filePattern);
+    myRenderDetails.filePattern = myRenderDetails.filePattern.replace('%d', dateString)
+    console.log(" This should be interesting");
+    console.log(myRenderDetails.filePattern);
+    let xmlString = await readPPWG(myFullDetails.ppwgFilename);
+    theCommand.ppwgFilename = myFullDetails.ppwgFilename;
+    myPageDetails = xmlStrings.pageDetailsFromPPWG(xmlString, myPageDetails);
+    console.log(theSettings.currentConfig)
+    theSettings.blackDetails.startTimecode = tc.timecodeAdd(myPageDetails.startTimecode, myPageDetails.eom)
+    //let clearResult = await clearKeyer(theSettings.currentConfig.playoutSubDevice);
+    //console.log('Clear Keyer');
+    //console.log(clearResult);
+    let testResult = await cuePagePpwg(xmlString, myPageDetails.jobPath, myPageDetails.triggerId, theSettings.currentConfig.playoutSubDevice, false, '');
+    if (hasAnyErrors(testResult)){
+      result = testResult
+    } else {
+      console.log('Event Abort');
+      let abortResult = await eventAbort(theSettings.currentConfig.playoutSubDevice, myPageDetails.triggerId);
+      console.log(abortResult);
+      if (createMp4FolderIfNotExist(myRenderDetails.folder)){
+        result = await command.renderMovie(theSettings.currentConfig, myBackgroundMedia, myPageDetails, theSettings.blackDetails, myRenderDetails, myPpwlDetails); 
+      }
+      theCommand.renderFolder = myRenderDetails.folder;
+      theCommand.renderFilename = myRenderDetails.filePattern;
+    }
+  }
+  return {result: result, theCommand: theCommand};
+}
+
+
 function hasAnyErrors(theResult){
   for (const tempResult of theResult){
     for (const theLog of tempResult.log){
@@ -915,4 +959,4 @@ async function readFullDetails(filename){
 }
 
 module.exports = {playBlack, playTest, playOutOverTest, playOut, playoutPageNumber, playoutPageNumberOverTest, getPageNumberAndNameDetails, readJpeg, readDirectory, clearJpegFolder, exportJpegFromWorkfile, 
-                  exportMp4FromWorkfile, renderMovie, pageDetailsDescription, playOutFromFullDetails, exportJpegFromFullDetailsFile, exportMp4FromFullDetailsFile, eventAbort, exportJpegFromFullDetails}
+                  exportMp4FromWorkfile, renderMovie, pageDetailsDescription, playOutFromFullDetails, exportJpegFromFullDetailsFile, exportMp4FromFullDetailsFile, eventAbort, exportJpegFromFullDetails, exportMp4FromFullDetails}
