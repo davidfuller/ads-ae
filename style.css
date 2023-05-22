@@ -187,7 +187,7 @@ div #ads-jpeg {
   color: dodgerblue;
   display: inline;
 }
-#ads-heading{
+#ads-heading, #ads-after-effects, #ads-url, #ads-label{
   font-family: Arial, Helvetica, sans-serif;
   font-size: 20px;
   font-weight: normal;
@@ -196,6 +196,19 @@ div #ads-jpeg {
   margin-left: 50px;
   display: inline;
 }
+#ads-server{
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 20px;
+  font-weight: normal;
+  color: dodgerblue;
+  margin-top: 20px;
+  margin-left: 10px;
+  display: inline;
+  border-width: 1px;
+  border-radius: 5px;
+  border-color: dodgerblue;
+}
+
 #status{
   left: 150px;
 }
