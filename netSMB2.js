@@ -234,6 +234,29 @@ async function writeXML(serverDetails, path, xml){
   }
 }
 
+async function writeJson(serverDetails, path, myObject){
+  
+  await deleteFile(serverDetails, path);
+  let client = await getServer(serverDetails)
+  if (client != null){
+    try {
+      if (await createPathIfNotExist(path, client)){
+        console.log("About to save JSON");
+        console.log(path);
+        console.log(JSON.stringify(myObject, null, 2));
+        await deleteFile(serverDetails, path);
+        let result = await client.writeFile(path, JSON.stringify(myObject, null, 2));
+        return true;
+      }
+    }
+    catch(err){
+      console.log(err)
+      return null;
+    }
+  } else {
+    return null;
+  }
+}
 
 async function deleteFile(serverDetails, path){
   let client = await getServer(serverDetails)
@@ -283,4 +306,4 @@ function splitPath(path){
   return thePaths 
 }
 
-module.exports = {findMyServer, getIPShare, findMyPath, readJson, readXML, readDir, readJpeg, writeJpeg, splitPath, deleteFile, getServer, createPathIfNotExist, writeXML}
+module.exports = {findMyServer, getIPShare, findMyPath, readJson, readXML, readDir, readJpeg, writeJpeg, splitPath, deleteFile, getServer, createPathIfNotExist, writeXML, writeJson}
