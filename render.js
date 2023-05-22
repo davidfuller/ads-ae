@@ -374,6 +374,8 @@ let otherBlock = document.getElementById("the-rest");
 let myJpegBlock = document.getElementById("my-jpeg");
 let myVideoBlock = document.getElementById("my-video");
 let myADSBlock = document.getElementById("ads");
+let myAdsAeBlock = document.getElementById("ads-ae");
+let myAdsCommonBlock = document.getElementById("ads-common");
 let myFolderBlock = document.getElementById("folder-selection")
 
 function generateJpegs(){
@@ -383,6 +385,8 @@ function generateJpegs(){
   myJpegBlock.style.display = "none";
   myVideoBlock.style.display = "none";
   myADSBlock.style.display = "none";
+  myAdsAeBlock.style.display = "none";
+  myAdsCommonBlock.style.display = "none";
   myFolderBlock.style.display = "block";
 }
 
@@ -393,6 +397,8 @@ function displayJpegs(){
   myJpegBlock.style.display = "block";
   myVideoBlock.style.display = "none";
   myADSBlock.style.display = "none";
+  myAdsAeBlock.style.display = "none";
+  myAdsCommonBlock.style.display = "none";
   myFolderBlock.style.display = "block";
 }
 
@@ -403,6 +409,8 @@ function displayOther(){
   myJpegBlock.style.display = "none";
   myVideoBlock.style.display = "none";
   myADSBlock.style.display = "none";
+  myAdsAeBlock.style.display = "none";
+  myAdsCommonBlock.style.display = "none";
   myFolderBlock.style.display = "none";
 }
 async function displayADS(){
@@ -412,11 +420,25 @@ async function displayADS(){
   myJpegBlock.style.display = "none";
   myVideoBlock.style.display = "none";
   myADSBlock.style.display = "block";
+  myAdsAeBlock.style.display = "none";
+  myAdsCommonBlock.style.display = "block";
   myFolderBlock.style.display = "none";
 
   let description = await command.pageDetailsDescription(theSettings.adsWorkDetailsFilenameUNC);
   let descriptionElement = document.getElementById('ads-description');
   descriptionElement.innerText = description;
+}
+async function displayAdsAe(){
+  generateBlock.style.display = "none";
+  pageBlock.style.display = "none";
+  otherBlock.style.display = "none";
+  myJpegBlock.style.display = "none";
+  myVideoBlock.style.display = "none";
+  myADSBlock.style.display = "none";
+  myAdsAeBlock.style.display = "block";
+  myAdsCommonBlock.style.display = "block";
+  myFolderBlock.style.display = "none";
+
 }
 
 async function playoutADS(){
@@ -489,8 +511,70 @@ async function renderMp4ADS(){
     myResult.message[0] = "Cannot find mp4 file";
     adsErrorList.innerText = myResult.message.join('\r\n');
   }
-  
 }
+
+async function renderMp4ADSfromFulldetails(fullDetails){
+  let adsJpeg = document.getElementById('ads-jpeg');
+  let finalResult = true;
+  let adsErrorList = document.getElementById("ads-error-list");
+  adsErrorList.innerText = 'Attempting to create mp4'
+  let temp = await command.exportMp4FromFullDetails(fullDetails); 
+  console.log(temp);
+  let myResult = dealWithAnyErrors(temp);
+  adsErrorList.innerText = myResult.message.join('\r\n')
+  adsMp4Details.folder = temp.theCommand.renderFolder
+  adsMp4Details.filename = temp.theCommand.renderFilename
+  let fullFilename = path.join(adsMp4Details.folder, adsMp4Details.filename);
+  if (fs.existsSync(fullFilename)){
+    let doWeContinue = await waitForFile(fullFilename, myResult.message, adsErrorList, 300, 200)
+    if (doWeContinue){
+      adsJpeg.style.display = "none";
+      adsErrorList.innerText = "Mp4 created: " + adsMp4Details.filename
+      loadADSVideo(fullFilename);
+      finalResult = true;
+    } else {
+      myResult.message[0] = "Issue with mp4 file";
+      adsErrorList.innerText = myResult.message.join('\r\n');  
+      finalResult = false;
+    }
+  } else {
+    myResult.message[0] = "Cannot find mp4 file";
+    adsErrorList.innerText = myResult.message.join('\r\n');
+    finalResult = false;
+  }
+  return {result: finalResult, fullFilename: fullFilename, filename: adsMp4Details.filename};
+}
+
+async function waitForMp4FromAe(fullDetails){
+  let adsJpeg = document.getElementById('ads-jpeg');
+  let finalResult = true;
+  let adsErrorList = document.getElementById("ads-error-list");
+  adsErrorList.innerText = 'Waiting for mp4 from After Effects'
+  
+  adsMp4Details.folder = temp.theCommand.renderFolder
+  adsMp4Details.filename = temp.theCommand.renderFilename
+  let fullFilename = path.join(adsMp4Details.folder, adsMp4Details.filename);
+  if (fs.existsSync(fullFilename)){
+    let doWeContinue = await waitForFile(fullFilename, myResult.message, adsErrorList, 300, 200)
+    if (doWeContinue){
+      adsJpeg.style.display = "none";
+      adsErrorList.innerText = "Mp4 created: " + adsMp4Details.filename
+      loadADSVideo(fullFilename);
+      finalResult = true;
+    } else {
+      myResult.message[0] = "Issue with mp4 file";
+      adsErrorList.innerText = myResult.message.join('\r\n');  
+      finalResult = false;
+    }
+  } else {
+    myResult.message[0] = "Cannot find mp4 file";
+    adsErrorList.innerText = myResult.message.join('\r\n');
+    finalResult = false;
+  }
+  return {result: finalResult, fullFilename: fullFilename, filename: adsMp4Details.filename};
+}
+
+
 
 function playMp4ADS(){
   playADSVideo(adsMp4Details.folder, adsMp4Details.filename);
@@ -630,72 +714,165 @@ function dealWithAnyErrors(temp){
   }
 }
 
-async function getData(){
+async function getData(aeOnly){
 /**
  * @type {BackgroundMedia}
  */
 
 
+  let doAfterEffects = true;
+
   let adsErrorList = document.getElementById("ads-error-list");
-  adsErrorList.innerText = 'Attempting to create jpegs from API data'
+  let adsUrl = document.getElementById("ads-url");
+  if (aeOnly){
+    adsErrorList.innerText = 'Creating data for After Effects'
+  } else {
+    adsErrorList.innerText = 'Attempting to create jpegs from API data'
+  }
+  
+  if (doAfterEffects){
+    let aeDescription = document.getElementById("ads-after-effects");
+    //aeDescription.innerText = "Doing After Effects also";
+  }
   let adsVideo = document.getElementById("ads-video")
   adsVideo.style.display = "none";  
 
+  let serverChoice = document.getElementById("ads-server");
+  let isTestServer = (serverChoice.value == 'test');
+  console.log("Server choice");
+  console.log(serverChoice.value);
+  console.log(isTestServer);
 
   let background = await ads.readBackground(userPath);
   let pageSettings = await ads.readPageSettings(userPath);
-  let myData = await api.httpGet(ads.url);
-  let jsonAds = xmlToJson.parseXML(myData);
-  console.log("JSON")
-  console.log(jsonAds);
-  
-  let pageNumber = jsonAds.media_files.item[0].page[0];
+  let serverSettings = await ads.readServerSettings(userPath, serverChoice.value);
+  let myData;
+  let apiSuccess;
 
-  let theTemplate = await ads.findTemplate(userPath, jsonAds);
-
-  let ppwgFilename = await ads.createPPWG(userPath, jsonAds, pageSettings, pageNumber);
-  let messages = ["Creating ppwg"]
-  let doWeContinue = await waitForFile(ppwgFilename, messages, adsErrorList, 200, 200)
-  console.log(doWeContinue)
-  if (doWeContinue){
-    console.log("Ready for next bit")
-    let pageDetails = await ads.createPageDetails(userPath, jsonAds, theTemplate, pageSettings, pageNumber);
-    console.log("PageDetails")
-    console.log(pageDetails);
-    let jpegDetails = await ads.createJpegDetails(userPath, jsonAds, pageSettings, pageNumber);
-    console.log("Jpeg Details");
-    console.log(jpegDetails);
-    let renderDetails = await ads.createRenderDetails(userPath, jsonAds, theTemplate);
-    console.log("Render Details");
-    console.log(renderDetails);
-    
-    let fullDetails = {};
-    fullDetails = background
-    fullDetails.pageDetails = pageDetails;
-    fullDetails.jpegDetails = jpegDetails;
-    fullDetails.renderDetails = renderDetails;
-    fullDetails.ppwgFilename = ppwgFilename;
-
-    console.log("Full Details");
-    console.log(fullDetails);
-
-    let mediaFilenames = await ads.mediaFields(userPath, jsonAds, true);
-    let missingFiles = ads.missingMediaFiles(mediaFilenames);
-    let success = await ads.copyMissingFiles(userPath, missingFiles);
-
-    if (success){
-      let temp = await command.exportJpegFromFullDetails(fullDetails);
-      console.log(temp);
-      let myResult = dealWithAnyErrors(temp);
-      adsErrorList.innerText = myResult.message.join('\r\n')
-      if (!myResult.hasError){
-        await displayJpegADS(temp.theCommand.filenames);
-      }
-    }
-    
+  try {
+    adsUrl.innerText = serverSettings.url;
+    myData = await api.httpGet(serverSettings.url);
+    apiSuccess = true;
+  } catch (e){
+    console.log("Cannot connect to server")
+    adsErrorList.innerText = 'Cannot connect to server'
+    apiSuccess = false;
   }
   
+  if (apiSuccess){
+    console.log("My Data");
+    console.log(myData)
+    let jsonAds = xmlToJson.parseXML(myData);
+    console.log("JSON")
+    console.log(jsonAds);
+
+    if (jsonAds.media_files === "\n"){
+      console.log("Empty data")
+      adsErrorList.innerText = 'No special previews to render'
+    } else {
+      let description = ads.sanitisedName(jsonAds);
+      let descriptionElement = document.getElementById('ads-description');
+      descriptionElement.innerText = description;
+
+      let pageNumber = jsonAds.media_files.item[0].page[0];
+
+      let theTemplate = await ads.findTemplate(userPath, jsonAds);
+      if (theTemplate === undefined){
+        adsErrorList.innerText = 'Cannot find template for page ' + pageNumber;
+      } else {
+        let doWeContinue;
+        if (aeOnly){
+          doWeContinue = true;
+        } else {
+          let ppwgFilename = await ads.createPPWG(userPath, jsonAds, pageSettings, pageNumber);
+          let messages = ["Creating ppwg"]
+          doWeContinue = await waitForFile(ppwgFilename, messages, adsErrorList, 200, 200)
+        }
+        console.log(doWeContinue)
+        if (doWeContinue){
+          console.log("Ready for next bit")
+          let pageDetails;
+          let jpegDetails;
+          if (!aeOnly){
+            pageDetails = await ads.createPageDetails(userPath, jsonAds, theTemplate, pageSettings, pageNumber);
+            console.log("PageDetails")
+            console.log(pageDetails);
+            jpegDetails = await ads.createJpegDetails(userPath, jsonAds, pageSettings, pageNumber);
+            console.log("Jpeg Details");
+            console.log(jpegDetails);
+          }
+          
+          let renderDetails = await ads.createRenderDetails(userPath, jsonAds, theTemplate);
+          console.log("Render Details");
+          console.log(renderDetails);
+          
+          let aeJson;
+          if (doAfterEffects){
+            aeJson = await ads.createAeJson(userPath, jsonAds, theTemplate, theSettings, renderDetails);
+            console.log ("This is the AE Json");
+            console.log (aeJson);
+          }  
+  
+
+          let fullDetails = {};
+          if (!aeOnly){
+            fullDetails = background
+            fullDetails.pageDetails = pageDetails;
+            fullDetails.jpegDetails = jpegDetails;
+            fullDetails.renderDetails = renderDetails;
+            fullDetails.ppwgFilename = ppwgFilename;
+  
+            console.log("Full Details");
+            console.log(fullDetails);
+          }
+          
+          
+          let mediaFilenames = await ads.mediaFields(userPath, jsonAds, true);
+          let missingFiles = ads.missingMediaFiles(mediaFilenames);
+          let success = {};
+          success.result = true;
+          if (missingFiles.length > 0){
+            adsErrorList.innerText = 'Attempting to copy missing files'
+            success = await ads.copyMissingFiles(userPath, missingFiles, isTestServer);
+            adsErrorList.innerText = success.messages.join('\r\n')
+          }
+
+          if (doAfterEffects){
+            adsErrorList.innerText = 'Attempting to copy AE files'
+            let aeSuccess = await ads.copyAeMediaFiles(userPath, aeJson.media);
+            adsErrorList.innerText = aeSuccess.messages.join('\r\n')
+            await ads.updateAeJobFile(aeJson.specials, theTemplate, renderDetails);
+          }
+
+          if (success.result && !aeOnly){
+            let temp = await command.exportJpegFromFullDetails(fullDetails);
+            console.log(temp);
+            let myResult = dealWithAnyErrors(temp);
+            adsErrorList.innerText = myResult.message.join('\r\n')
+            if (!myResult.hasError){
+              await displayJpegADS(temp.theCommand.filenames);
+              let theResult = await renderMp4ADSfromFulldetails(fullDetails);
+              let finalMessages = []
+              if (theResult.result){
+                let copySuccess = await ads.copyMp4ToServer(theResult.fullFilename, jsonAds, serverSettings);
+                adsErrorList.innerText = copySuccess.message;
+                finalMessages.push(copySuccess.message);
+                if (copySuccess.result){
+                  let updateSuccess= await ads.sendFileQueuedToWebApp(theResult.filename, jsonAds, serverSettings);
+                  finalMessages.push(updateSuccess.message);
+                  adsErrorList.innerText = finalMessages.join('\r\n')
+                }
+              }
+            }
+          }
+        } else {
+          adsErrorList.innerText = 'Failed to create ppwg file'
+        } 
+      }   
+    }
+  }
 }
+
 
 async function fileSizeSettled(fullFilename, lastSize, sizeCount){
   let result = {}
