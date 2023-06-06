@@ -16,7 +16,8 @@ const createWindow = () => {
       }
     })
   
-    win.loadFile('index.html')
+    win.loadFile('index.html');
+    win.setBackgroundColor('rgb(50,50,50');
   }
   app.whenReady().then(() => {
     createWindow()
