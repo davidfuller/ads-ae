@@ -226,6 +226,19 @@ async function saveAeJson(specials, theSettings, theFilename){
   return result;
 }
 
+async function readAeJson(theSettings, theFilename){
+  let filename = theSettings.aeSpecialsJsonFolderUNC + theFilename;
+  let server = net.findMyServer(filename);
+  server.ipShare = await net.getIPShare(server);
+  let myPath = net.findMyPath(filename);
+  let specials = await net.readJson(server, myPath);
+  console.log("Read aeJson");
+  console.log(specials);
+  return specials;
+}
+
+
+
 async function updateAeJobFile(specials, theTemplate, renderDetails){
   let filename = theSettings.aeJobFileUNC;
   let server = net.findMyServer(filename);
@@ -468,4 +481,4 @@ async function sendFileQueuedToWebApp(originalFilename, jsonAds, serverSettings)
 }
 
 module.exports = {readBackground, readTemplates, findTemplate, parsedFieldData, createPPWG, createPageDetails, createJpegDetails, createRenderDetails, createPpwgFilename, readPageSettings, mediaFields, 
-  missingMediaFiles, copyMissingFiles, readServerSettings, sanitisedName, copyMp4ToServer, sendFileQueuedToWebApp, createAeJson, copyAeMediaFiles, updateAeJobFile}
+  missingMediaFiles, copyMissingFiles, readServerSettings, sanitisedName, copyMp4ToServer, sendFileQueuedToWebApp, createAeJson, copyAeMediaFiles, updateAeJobFile, readAeJson}
