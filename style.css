@@ -6,6 +6,7 @@ body {
     font-family: Arial, Helvetica, sans-serif;
     overflow-y: auto;
     overflow-x: hidden;
+    background-color: #27374D;
 }
 
 #folder-selection{
@@ -62,7 +63,7 @@ input {
     color: dodgerblue;
     font-size: 18px;
     padding-left: 10px;
-    outline-color: dodgerblue;
+    outline-color: black;
     width: 5ch;
     margin-top: 40px;
 }
@@ -102,8 +103,8 @@ button {
     height: 40px;
     border: none;
     border-radius: 7px;
-    background-color: dodgerblue;
-    color: white;
+    background-color: #526D82;
+    color: #DDE6ED;
     font-size: 18px;
     cursor: pointer;
 }
@@ -141,7 +142,7 @@ button {
 #clock, #status {
   font-family: monospace;
   font-size: 20px;
-  color:darkmagenta;
+  color: #DDE6ED;
   position:absolute;
   left: 0px;
   top: 0px;
@@ -152,7 +153,7 @@ button {
 #num-errors, #error-status, #full-error-list {
   font-family: Arial, Helvetica, sans-serif;
   font-size: 14px;
-  color: dodgerblue;
+  color: #DDE6ED;
   margin-left: 50px;
   white-space: pre-line;
 }
@@ -160,7 +161,7 @@ button {
 #ads-error-list {
   font-family: Arial, Helvetica, sans-serif;
   font-size: 14px;
-  color: dodgerblue;
+  color: #DDE6ED;
   margin-left: 50px;
   margin-top: 10px;
   width: 80%;
@@ -168,7 +169,7 @@ button {
   white-space: pre-line;
   border-width: 1px;
   border-radius: 5px;
-  border-color: dodgerblue;
+  border-color: #9DB2BF;
   border-style: solid;
 }
 
@@ -184,14 +185,14 @@ div #ads-jpeg {
   font-family: Arial, Helvetica, sans-serif;
   font-size: 20px;
   font-weight: bold;
-  color: dodgerblue;
+  color: #DDE6ED;
   display: inline;
 }
-#ads-heading, #ads-after-effects, #ads-url, #ads-label{
+#ads-heading, #ads-after-effects, #ads-url, #ads-label, #ads-aejson{
   font-family: Arial, Helvetica, sans-serif;
   font-size: 20px;
   font-weight: normal;
-  color: dodgerblue;
+  color: #DDE6ED;
   margin-top: 20px;
   margin-left: 50px;
   display: inline;
@@ -200,13 +201,18 @@ div #ads-jpeg {
   font-family: Arial, Helvetica, sans-serif;
   font-size: 20px;
   font-weight: normal;
-  color: dodgerblue;
+  color: #DDE6ED;
   margin-top: 20px;
   margin-left: 10px;
   display: inline;
   border-width: 1px;
   border-radius: 5px;
-  border-color: dodgerblue;
+  border-color: #9DB2BF;
+  background-color: #27374D;
+}
+
+#ads-server option:focus{
+  background-color: red;
 }
 
 #status{
@@ -223,29 +229,40 @@ div #ads-jpeg {
 }
 */
 
+
 .page-select select{
+  appearance: none;
   margin-left: 50px;
-  color: dodgerblue;
+  color: #DDE6ED;
   width: 90%;
   border-width: 1px;
   border-radius: 5px;
-  border-color: dodgerblue;
-  background-color: aliceblue;
+  border-color: #9DB2BF;
+  background-color: #526D82;
+  outline-color: black;
+  outline: none;
 }
 .page-select option{
+  appearance: none;
   font-size: large;
   border-width: 1px;
-  border-color: dodgerblue;
+  border-color: #9DB2BF;
   padding: 10px;
+  outline-color: black;
 }
 
 .page-select option:hover {
-  background-color: rgba(30, 143, 255, 0.308);
-  color: white;
+  background-color: rgba(0, 0, 0, 0.308);
+  color: #DDE6ED;
 }
 
-.page-select select:focus{
-  outline-color: dodgerblue;
+.page-select option:checked::after{
+  background-color: red !important;
+}
+
+.page-select option:focus{
+  outline-color: #9DB2BF;
+  outline: none !important;
 }
 
 #status-block select{
@@ -255,11 +272,11 @@ div #ads-jpeg {
   border-width: 1px;
   border-radius: 5px;
   border-color: dodgerblue;
-  background-color: aliceblue;
+  background-color: #526D82;
 }
 
 #status-block select:focus{
-  outline-color: dodgerblue;
+  outline-color: #9DB2BF;
 }
 
 #status-block button {
