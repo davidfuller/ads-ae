@@ -1,7 +1,7 @@
 {
-  "name": "streammastergenerator",
+  "name": "ads-ae",
   "version": "1.0.0",
-  "description": "Controller for StreamMaster",
+  "description": "Controller for After Effects for Viaplay ADS",
   "main": "main.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
@@ -10,10 +10,22 @@
   "author": "David Fuller",
   "license": "MIT",
   "devDependencies": {
-    "electron": "^17.1.2"
+    "electron": "^17.4.11"
   },
   "dependencies": {
     "@marsaud/smb2": "^0.18.0",
     "xml2js": "^0.4.23"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/davidfuller/ads-ae.git"
+  },
+  "keywords": [
+    "After",
+    "Effects"
+  ],
+  "bugs": {
+    "url": "https://github.com/davidfuller/ads-ae/issues"
+  },
+  "homepage": "https://github.com/davidfuller/ads-ae#readme"
 }
