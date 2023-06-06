@@ -9,11 +9,15 @@ const ads = require('./ads.js');
 const api = require('./apiHandler.js');
 const xmlToJson = require('./genericXmlJson.js');
 const { resourceLimits } = require("worker_threads");
+const afterFxBat = '\\\\alpaca\\dropbox\\Development\\Adobe\\ads.bat';
 
 let pages = [];
 let userPath;
 let theSettings = {};
 let genLog = [];
+let aeJson;
+let jsonAds;
+let aeName;
 
 ipcRenderer.send("getUserPath");
 ipcRenderer.send("getSettings");
@@ -545,29 +549,34 @@ async function renderMp4ADSfromFulldetails(fullDetails){
   return {result: finalResult, fullFilename: fullFilename, filename: adsMp4Details.filename};
 }
 
-async function waitForMp4FromAe(fullDetails){
+async function waitForMp4FromAe(aeJson){
   let adsJpeg = document.getElementById('ads-jpeg');
   let finalResult = true;
   let adsErrorList = document.getElementById("ads-error-list");
-  adsErrorList.innerText = 'Waiting for mp4 from After Effects'
-  
-  adsMp4Details.folder = temp.theCommand.renderFolder
-  adsMp4Details.filename = temp.theCommand.renderFilename
+  adsErrorList.innerText = 'Waiting for mov from After Effects'
+  console.log(aeJson);
+  console.log(aeName);
+  let myResult = {};
+  adsMp4Details.folder = aeJson.specials.specials[aeName].aeRenderFolder
+  adsMp4Details.filename = aeJson.specials.specials[aeName].renderFilename
   let fullFilename = path.join(adsMp4Details.folder, adsMp4Details.filename);
-  if (fs.existsSync(fullFilename)){
+  let doesFileExist = await waitForFileExist(fullFilename, adsErrorList, 2000, 100);
+  if (doesFileExist){
+    myResult.message = []
     let doWeContinue = await waitForFile(fullFilename, myResult.message, adsErrorList, 300, 200)
     if (doWeContinue){
       adsJpeg.style.display = "none";
-      adsErrorList.innerText = "Mp4 created: " + adsMp4Details.filename
+      adsErrorList.innerText = "Mov created: " + adsMp4Details.filename
       loadADSVideo(fullFilename);
       finalResult = true;
     } else {
-      myResult.message[0] = "Issue with mp4 file";
+      myResult.message[0] = "Issue with mov file";
       adsErrorList.innerText = myResult.message.join('\r\n');  
       finalResult = false;
     }
   } else {
-    myResult.message[0] = "Cannot find mp4 file";
+    myResult.message = []
+    myResult.message[0] = "Cannot find mov file";
     adsErrorList.innerText = myResult.message.join('\r\n');
     finalResult = false;
   }
@@ -714,6 +723,25 @@ function dealWithAnyErrors(temp){
   }
 }
 
+async function fileReady(){
+  let adsErrorList = document.getElementById("ads-error-list");
+  let theResult = await waitForMp4FromAe(aeJson)
+  console.log(theResult);
+  let finalMessages = []
+  if (theResult.result){
+    let serverChoice = document.getElementById("ads-server");
+    let serverSettings = await ads.readServerSettings(userPath, serverChoice.value);
+    let copySuccess = await ads.copyMp4ToServer(theResult.fullFilename, jsonAds, serverSettings);
+    adsErrorList.innerText = copySuccess.message;
+    finalMessages.push(copySuccess.message);
+    if (copySuccess.result){
+      let updateSuccess= await ads.sendFileQueuedToWebApp(theResult.filename, jsonAds, serverSettings);
+      finalMessages.push(updateSuccess.message);
+      adsErrorList.innerText = finalMessages.join('\r\n')
+    }
+  }
+}
+
 async function getData(aeOnly){
 /**
  * @type {BackgroundMedia}
@@ -762,7 +790,7 @@ async function getData(aeOnly){
   if (apiSuccess){
     console.log("My Data");
     console.log(myData)
-    let jsonAds = xmlToJson.parseXML(myData);
+    jsonAds = xmlToJson.parseXML(myData);
     console.log("JSON")
     console.log(jsonAds);
 
@@ -780,6 +808,7 @@ async function getData(aeOnly){
       if (theTemplate === undefined){
         adsErrorList.innerText = 'Cannot find template for page ' + pageNumber;
       } else {
+        aeName = theTemplate.template.aeName;
         let doWeContinue;
         if (aeOnly){
           doWeContinue = true;
@@ -791,6 +820,7 @@ async function getData(aeOnly){
         console.log(doWeContinue)
         if (doWeContinue){
           console.log("Ready for next bit")
+          console.log(theTemplate);
           let pageDetails;
           let jpegDetails;
           if (!aeOnly){
@@ -806,11 +836,13 @@ async function getData(aeOnly){
           console.log("Render Details");
           console.log(renderDetails);
           
-          let aeJson;
+          
           if (doAfterEffects){
             aeJson = await ads.createAeJson(userPath, jsonAds, theTemplate, theSettings, renderDetails);
             console.log ("This is the AE Json");
             console.log (aeJson);
+            let aeJsonFileDisplay = document.getElementById("ads-aejson");
+            aeJsonFileDisplay.innerText = aeJson.filename;
           }  
   
 
@@ -928,6 +960,7 @@ async function asyncInterval(callback, fullFilename, theMessages, theElement, ms
         theElement.innerText = myMessages.join('\r\n');
       }
       triesLeft--;
+      console.log("Tries left: " + triesLeft)
     }, ms);
   });
 }
@@ -942,3 +975,59 @@ async function waitForFile(fullFilename, theMessages, theElement, msInterval, tr
   console.log("Done!");
   return true
 }
+
+async function waitForFileExist(fullFilename, adsErrrorList, msInterval, triesLeft ){
+  try {
+    console.log(await asyncExistInterval(theFileExists, fullFilename, adsErrrorList, msInterval, triesLeft));
+  } catch (e) {
+    console.log("Error. File Exists!");
+    return false;
+  }
+  console.log("Done! File exists");
+  return true;
+}
+
+async function asyncExistInterval(myFileExists, fullFilename, adsErrorList, msInterval, triesLeft = 10){
+  return new Promise((resolve, reject) => {
+    const theInterval = setInterval(async () => {
+      myResult = await myFileExists(fullFilename);
+      if (myResult){
+        resolve();
+        clearInterval(theInterval);
+        adsErrorList.innerText = "File present"
+      } else if (triesLeft <= 1){
+        reject();
+        clearInterval(theInterval);
+        adsErrorList.innerText = "File not present. Timeout";
+      }
+      triesLeft--;
+      console.log("Tries left: " + triesLeft);
+      adsErrorList.innerText += ".";
+    }, msInterval);
+  });
+
+}
+
+async function theFileExists(fullFilename){
+  return fs.existsSync(fullFilename);
+}
+
+function runAfterFX(path){
+  const { exec } = require('child_process');
+  exec(path, (err, stdout, stderr) => {
+    if (err) {
+      console.error(err);
+      return;
+    }
+    console.log(stdout);
+  });
+}
+
+function startAfterFX(){
+  let adsErrorList = document.getElementById("ads-error-list");
+  adsErrorList.innerText = "Running After Effects"
+  console.log("Running After Effects")
+  runAfterFX(afterFxBat);
+}
+
+
