@@ -10,35 +10,6 @@
 <body>
     <h1 id="clock"></h1><h1 id="status"></h1>
     <div id="all-page-block">
-      <div id="switcher-block">
-        <button id="switcher-button" onclick="displayJpegs()">Display</button>
-        <button id="switcher-button" onclick="generateJpegs()">Generate</button>
-        <button id="switcher-button" onclick="displayOther()">Other</button>
-        <button id="switcher-button" onclick="displayADS()">ADS</button>
-        <button id="switcher-button" onclick="displayAdsAe()">ADS-AE</button>
-      </div>
-      <div id="read-buttons" style="display: block;">
-        <button onclick="reloadThePages()">Reload Pages</button>
-        <button onclick="refreshThePages()">Refresh Pages</button>
-      </div>
-      <div id="folder-selection" style="display: block;">
-        <input type="text" id="page-json-folder" />
-        <button id="choose-folder" onclick="getJsonPlayoutFolder()">Choose Folder</button>
-      </div>
-
-      <div id="page-block" style="display:none;">
-        <div class="page-select">
-          <input type="text" class="search" placeholder="Search..." oninput="refreshPages()" >  
-          <select name="pages" id="pageChoice" size="10" ondblclick="selectPage()" onclick="displayJpeg()">
-          </select> 
-        </div>
-        <div id="list-playout-block">
-          <button id="list-playout" onclick="selectPage()">Playout</button>
-          <button id="list-playout" onclick="renderMp4()">Render</button>
-        </div>
-      </div>
-      <div id="my-jpeg" style="display: block;">
-      </div>
       <div id="my-video" style="display: none;">
         <button id="toggle-video-jpeg" onclick="toggleVideo()">Show Jpeg</button>
         <video id="my-player" controls autoplay>
@@ -60,24 +31,22 @@
         <button id="other-button" onclick="playoutPageNumberOverTest()">Playout Over Test</button>
         <button id="other-button" onclick="showBlack()">Playout Black</button>
         <button id="other-button" onclick="showTestSignal()">Playout Test Signal</button>
-        <button id="other-button" onclick="displayJpeg()">Display Jpeg</button>
         <button id="other-button" onclick="playoutPageWorkfileOverTest()">Playout Workfile Over Test</button>
         <button id="other-button" onclick="playoutPageWorkfile()">Playout workfile</button>
       </div>
       <div id="ads" style="display: none;">
         <button id="ads-button" onclick="playoutADS()">Playout ADS</button>
-        <button id="ads-button" onclick="createJpegADS()">Create Jpeg ADS</button>
         <button id="ads-button" onclick="renderMp4ADS()">Create mp4 ADS</button>
         <button id="ads-button" onclick="playMp4ADS()">Play mp4 ADS</button>
         <button id="ads-button" onclick="getData(false)">Get the data</button>
         <button id="ads-button" onclick="getData(true)">Get the data (AE Only)</button>
       </div>
-      <div id="ads-ae" style="display: none;">
+      <div id="ads-ae" style="display: block;">
         <button id="ads-button" onclick="getData(true)">Get data</button>
         <button id="ads-button" onclick="startAfterFX()">Run AfterFX</button>
         <button id="ads-button" onclick="fileReady()">File Ready</button>
       </div>
-      <div id="ads-common" style="display: none;">
+      <div id="ads-common" style="display: block;">
         <label for "server-choice" id="ads-label">Server</label>
         <select name="server-choice" id="ads-server">
           <option value="live">Live</option>
