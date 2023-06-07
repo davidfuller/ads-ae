@@ -42,6 +42,20 @@ async function readTemplates(userPath){
   let data = await fspromises.readFile(filename);
   return JSON.parse(data);
 }
+
+/**
+ * 
+ * @param {string} userPath 
+ * @param {string} name
+ * @returns {object}
+ */
+async function readMachineProfile(userPath, name){
+  let filename = path.join(userPath, 'ads', name + '.json');
+  let data = await fspromises.readFile(filename);
+  return JSON.parse(data);
+}
+
+
 /**
  * 
  * @param {string} userPath 
@@ -96,26 +110,18 @@ async function findTemplate(userPath, jsonAds){
 }
 
 async function parsedFieldData(userPath, jsonAds, isPrep){
-  let pageSettings = await readPageSettings(userPath);
+  let machineProfile = await readMachineProfile(userPath, 'pomatter');
   console.log(jsonAds.media_files.item[0].fields);
-  console.log(pageSettings);
+  console.log('Machine Profile')
+  console.log(machineProfile);
   let myFields = []
   for (const thefield of jsonAds.media_files.item[0].fields){
     let temp = {}
     temp.fieldNumber = thefield.number[0];
-    temp.value = thefield.value[0].replace("|-|","").trim().replace(pageSettings.clarityAssetsFolder,pageSettings.createAssetsFolder);
+    temp.value = thefield.value[0].replace("|-|","").trim().replace(machineProfile.webAppAssetsFolder, machineProfile.localAssetsFolder);
     myFields.push(temp);
   }
-  console.log("Is Prep");
-  console.log(isPrep);
-  if (isPrep){
-    let jpegSettings = await readJpegSettings(userPath);
-    let temp = {}
-    temp.fieldNumber = jpegSettings.prepBgField;
-    temp.value = jpegSettings.prepBgImage;
-    myFields.push(temp);
-  }
-
+  
   console.log("These are the fields");
   console.log(myFields);
   return myFields;
@@ -309,6 +315,10 @@ function sanitisedName(jsonAds){
   return jsonAds.media_files.item[0].name[0].replace(/[^a-z0-9]/gi, '_').replace(/_{2,}/g, '_');
 }
 
+function specialName(jsonAds){
+  return jsonAds.media_files.item[0].name[0];
+}
+
 async function createJpegDetails(userPath, jsonAds, pageSettings, pageNumber){
   let jpegDetails = {}
   let jpegSettings = await readJpegSettings(userPath);
@@ -366,43 +376,6 @@ function missingMediaFiles(mediaFilenames){
   console.log("Missing files");
   console.log(missingFiles);
   return missingFiles;
-}
-
-async function copyAeMediaFiles(userPath, aeMediaFiles){
-  let pageSettings = await readPageSettings(userPath);
-  let result = true;
-  let messages = [];
-  let destinationFile;
-
-  for (let sourceFile of aeMediaFiles){
-    if (fs.existsSync(sourceFile)){
-      if (sourceFile.toUpperCase().startsWith(pageSettings.createLogoFolder.toUpperCase())){
-        destinationFile = sourceFile.replace(pageSettings.createLogoFolder, pageSettings.aeLogoFolder);
-      } else if (sourceFile.toUpperCase().startsWith(pageSettings.createPromoFolder.toUpperCase())){
-        destinationFile = sourceFile.replace(pageSettings.createPromoFolder, pageSettings.aePromoFolder);
-      }
-      console.log(destinationFile)
-      if (fs.existsSync(destinationFile)){
-        console.log("Already exists: " + destinationFile);
-      } else {
-        try{
-          await fspromises.copyFile(sourceFile, destinationFile);
-          messages.push("AE file copied: " + destinationFile);
-          console.log("AE Copied: " + destinationFile);
-        } catch (e){
-          messages.push("Error in AE copy for file: " + destinationFile);
-          result = false;
-        }
-      }      
-    } else {
-      console.log("No source file");
-      messages.push("Cannot find sourcefile: " + sourceFile)
-      result = false;
-    }
-  }
-  console.log("AE Copy File Messages");
-  console.log(messages);
-  return {result: result, messages: messages};
 }
 
 async function copyMissingFiles(userPath, missingFiles, isTestServer){
@@ -481,4 +454,4 @@ async function sendFileQueuedToWebApp(originalFilename, jsonAds, serverSettings)
 }
 
 module.exports = {readBackground, readTemplates, findTemplate, parsedFieldData, createPPWG, createPageDetails, createJpegDetails, createRenderDetails, createPpwgFilename, readPageSettings, mediaFields, 
-  missingMediaFiles, copyMissingFiles, readServerSettings, sanitisedName, copyMp4ToServer, sendFileQueuedToWebApp, createAeJson, copyAeMediaFiles, updateAeJobFile, readAeJson}
+  missingMediaFiles, copyMissingFiles, readServerSettings, sanitisedName, copyMp4ToServer, sendFileQueuedToWebApp, createAeJson, updateAeJobFile, readAeJson, specialName}

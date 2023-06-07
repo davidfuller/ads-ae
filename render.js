@@ -21,8 +21,7 @@ let aeName;
 
 ipcRenderer.send("getUserPath");
 ipcRenderer.send("getSettings");
-ipcRenderer.send("refreshPages");
-//await refreshPages();
+
 
 ipcRenderer.on("receiveMessage", (event, data) => {
   const passwordTag = document.querySelector("#status");
@@ -31,14 +30,6 @@ ipcRenderer.on("receiveMessage", (event, data) => {
 
 ipcRenderer.on("userPath", (event,data) => {
   userPath = data;
-})
-
-ipcRenderer.on("refreshPages", async () => {
-  await refreshThePages();
-})
-
-ipcRenderer.on("reloadPages", () => {
-  reloadThePages();
 })
 
 ipcRenderer.on("receiveSettings", () => {
@@ -89,56 +80,11 @@ async function playoutPageNumberOverTest(){
   ipcRenderer.send('sendMessage','Playing Out Page');
 }
 
-let pageBlock = document.getElementById("page-block");
-async function reloadThePages(){
-  ipcRenderer.send('sendMessage','Reading Pages');
-  
-  pageBlock.style.display = "none";
-  pages = await getThePages(userPath);
-  fillListbox(pages);
-  ipcRenderer.send('sendMessage','Idle');
-  pageBlock.style.display = "block";
-  let readPagesButton = document.getElementById("read-buttons");
-  readPagesButton.style.display = "none";
-}
-
-async function refreshThePages(){
-  ipcRenderer.send('sendMessage','Reading Pages');
-  pages = await getThePagesFromCache(userPath);
-  fillListbox(pages);
-  ipcRenderer.send('sendMessage','Idle');
-  let pageBlock = document.getElementById("page-block");
-  pageBlock.style.display = "block";
-  let readPagesButton = document.getElementById("read-buttons");
-  readPagesButton.style.display = "none";
-}
-
-
-async function refreshPages(){
-  fillListbox(pages);
-}
-
 async function selectPage(){
   let pageNumber = listboxPageNumber()
   await playoutPage(pageNumber);
 }
 
-function listboxPageNumber(){
-  var e = document.getElementById("pageChoice");
-  return e.options[e.selectedIndex].value;
-}
-
-const listbox = document.getElementById('pageChoice')
-
-listbox.addEventListener('keyup', testKey);
- 
-async function testKey(e){
-  if (e.key == "Enter"){
-    await selectPage()
-  } else if (e.key == "ArrowUp" || e.key == "ArrowDown"){
-    await displayJpeg()
-  }
-}
 let currentPlayoutDetails = {}
 currentPlayoutDetails.startTimecode = ""
 
@@ -164,43 +110,6 @@ function getTime(){
 }
 setInterval(getTime, 40 );
 
-async function displayJpeg(){
-  let thePage = listboxPageNumber();
-  let filenameBase = findPageNumber(thePage).jpegFilenameBase;
-  let videoFilename = await videoFileForPageNumber();
-  let jpegNo = 0
-  let target = document.getElementById('my-jpeg');
-  let videoMessage
-  let jpg64
-  if (videoFilename != null){
-   videoMessage = "<h1>Double click image for video</h1>"       
-  } else {
-    videoMessage = "<h1>No video file</h1>"       
-  }
-  do {
-    let jpegFilenameUNC = filenameBase + '_' + jpegNo + '.jpg';
-    jpg64 = await command.readJpeg(jpegFilenameUNC);
-    if (jpegNo == 0){
-      if (jpg64 != ''){
-        
-        let image = '<img src="data:image/jpg;base64,' + jpg64 + '" ondblclick="playVideo()" />';
-        target.innerHTML = videoMessage + image;
-      } else {
-        target.innerHTML = "<h1>No Jpeg for this page</h1>"
-      }
-    } else {
-      if (jpg64 == ''){
-        break;
-      } else {
-        let image = '<img src="data:image/jpg;base64,' + jpg64 + '" />';
-        target.insertAdjacentHTML('beforeend', image);
-      }
-    }
-    jpegNo += 1;
-  } while (jpg64 != '')
-  
-}
-
 function findPageNumber(pageNumber){
   for(page of pages){
     if (page.txPageNumber == pageNumber){
@@ -213,23 +122,19 @@ function findPageNumber(pageNumber){
 
 function toggleVideo(forceVideo){
   let myVideo = document.getElementById("my-video");
-  let myJpeg = document.getElementById("my-jpeg");
   let btn = document.getElementById("toggle-video-jpeg");
   let myPlayer = document.getElementById("my-player")
   btn.style.display = "block";
   if (forceVideo){
     btn.innerText = "Show Jpeg";
     myVideo.style.display = "block";
-    myJpeg.style.display = "none";
   } else if (myVideo.style.display == "block"){
     btn.innerText = "Show Video";
     myVideo.style.display = "none";
-    myJpeg.style.display = "block";
     myPlayer.pause();
   } else {
     btn.innerText = "Show Jpeg"
     myVideo.style.display = "block";
-    myJpeg.style.display = "none";
   }
 
 }
@@ -361,72 +266,37 @@ function errorPageNumber(){
   return e.options[e.selectedIndex].value;
 }
 
-ipcRenderer.on("folderChoice", async (event, folderStuff) => {
-  if (!folderStuff.canceled){
-    if (folderStuff.filePaths.length > 0){
-      let jsonFolder = document.getElementById("page-json-folder");
-      jsonFolder.value = folderStuff.filePaths[0];
-      theSettings.pageWorkDetailsFolderUNC = folderStuff.filePaths[0];
-      settings.saveSettings(theSettings, userPath);
-      await reloadThePages(theSettings, userPath)
-    }
-  }
-})
-
 let generateBlock = document.getElementById("status-block");
 let otherBlock = document.getElementById("the-rest");
-let myJpegBlock = document.getElementById("my-jpeg");
 let myVideoBlock = document.getElementById("my-video");
 let myADSBlock = document.getElementById("ads");
 let myAdsAeBlock = document.getElementById("ads-ae");
 let myAdsCommonBlock = document.getElementById("ads-common");
-let myFolderBlock = document.getElementById("folder-selection")
 
 function generateJpegs(){
   generateBlock.style.display = "block";
-  pageBlock.style.display = "none";
   otherBlock.style.display = "none";
-  myJpegBlock.style.display = "none";
   myVideoBlock.style.display = "none";
   myADSBlock.style.display = "none";
   myAdsAeBlock.style.display = "none";
   myAdsCommonBlock.style.display = "none";
-  myFolderBlock.style.display = "block";
-}
-
-function displayJpegs(){
-  generateBlock.style.display = "none";
-  pageBlock.style.display = "block";
-  otherBlock.style.display = "none";
-  myJpegBlock.style.display = "block";
-  myVideoBlock.style.display = "none";
-  myADSBlock.style.display = "none";
-  myAdsAeBlock.style.display = "none";
-  myAdsCommonBlock.style.display = "none";
-  myFolderBlock.style.display = "block";
 }
 
 function displayOther(){
   generateBlock.style.display = "none";
-  pageBlock.style.display = "none";
   otherBlock.style.display = "block";
-  myJpegBlock.style.display = "none";
   myVideoBlock.style.display = "none";
   myADSBlock.style.display = "none";
   myAdsAeBlock.style.display = "none";
   myAdsCommonBlock.style.display = "none";
-  myFolderBlock.style.display = "none";
 }
 async function displayADS(){
   generateBlock.style.display = "none";
-  pageBlock.style.display = "none";
   otherBlock.style.display = "none";
-  myJpegBlock.style.display = "none";
   myVideoBlock.style.display = "none";
   myADSBlock.style.display = "block";
   myAdsAeBlock.style.display = "none";
   myAdsCommonBlock.style.display = "block";
-  myFolderBlock.style.display = "none";
 
   let description = await command.pageDetailsDescription(theSettings.adsWorkDetailsFilenameUNC);
   let descriptionElement = document.getElementById('ads-description');
@@ -434,15 +304,11 @@ async function displayADS(){
 }
 async function displayAdsAe(){
   generateBlock.style.display = "none";
-  pageBlock.style.display = "none";
   otherBlock.style.display = "none";
-  myJpegBlock.style.display = "none";
   myVideoBlock.style.display = "none";
   myADSBlock.style.display = "none";
   myAdsAeBlock.style.display = "block";
   myAdsCommonBlock.style.display = "block";
-  myFolderBlock.style.display = "none";
-
 }
 
 async function playoutADS(){
@@ -451,45 +317,7 @@ async function playoutADS(){
   ipcRenderer.send('sendMessage','Playing Out Page');
 }
 
-async function createJpegADS(){
-  let adsErrorList = document.getElementById("ads-error-list");
-  adsErrorList.innerText = 'Attempting to create jpegs'
-  let adsVideo = document.getElementById("ads-video")
-  adsVideo.style.display = "none";
-  let temp = await command.exportJpegFromFullDetailsFile(theSettings.adsFullDetailsFilenameUNC);
-  console.log(temp);
-  let myResult = dealWithAnyErrors(temp);
-  adsErrorList.innerText = myResult.message.join('\r\n')
-  if (!myResult.hasError){
-    await displayJpegADS(temp.theCommand.filenames);
-  }
-}
 
-async function displayJpegADS(jpegFilenames){
-  let jpg64
-  let adsJpeg = document.getElementById('ads-jpeg');
-  adsJpeg.style.display = "block";
-  
-  for (filename of jpegFilenames){
-    jpg64 = await command.readJpeg(filename);
-    if (jpegFilenames.indexOf(filename) == 0){
-      if (jpg64 != ''){
-        let image = '<img src="data:image/jpg;base64,' + jpg64 + '" />';
-        adsJpeg.innerHTML = image;
-      } else {
-        adsJpeg.innerHTML = "<h1>No Jpeg for this page</h1>"
-      }
-    } else {
-      if (jpg64 != ''){
-        let image = '<img src="data:image/jpg;base64,' + jpg64 + '" />';
-        adsJpeg.insertAdjacentHTML('beforeend', image);  
-      } else {
-        adsJpeg.innerHTML = "<h1>No Jpeg for this page</h1>"
-      }
-    }
-  }
-  
-}
 
 let adsMp4Details = {}
 async function renderMp4ADS(){
@@ -743,10 +571,6 @@ async function fileReady(){
 }
 
 async function getData(aeOnly){
-/**
- * @type {BackgroundMedia}
- */
-
 
   let doAfterEffects = true;
 
@@ -771,8 +595,6 @@ async function getData(aeOnly){
   console.log(serverChoice.value);
   console.log(isTestServer);
 
-  let background = await ads.readBackground(userPath);
-  let pageSettings = await ads.readPageSettings(userPath);
   let serverSettings = await ads.readServerSettings(userPath, serverChoice.value);
   let myData;
   let apiSuccess;
@@ -798,7 +620,7 @@ async function getData(aeOnly){
       console.log("Empty data")
       adsErrorList.innerText = 'No special previews to render'
     } else {
-      let description = ads.sanitisedName(jsonAds);
+      let description = ads.specialName(jsonAds);
       let descriptionElement = document.getElementById('ads-description');
       descriptionElement.innerText = description;
 
@@ -812,10 +634,6 @@ async function getData(aeOnly){
         let doWeContinue;
         if (aeOnly){
           doWeContinue = true;
-        } else {
-          let ppwgFilename = await ads.createPPWG(userPath, jsonAds, pageSettings, pageNumber);
-          let messages = ["Creating ppwg"]
-          doWeContinue = await waitForFile(ppwgFilename, messages, adsErrorList, 200, 200)
         }
         console.log(doWeContinue)
         if (doWeContinue){
@@ -823,15 +641,7 @@ async function getData(aeOnly){
           console.log(theTemplate);
           let pageDetails;
           let jpegDetails;
-          if (!aeOnly){
-            pageDetails = await ads.createPageDetails(userPath, jsonAds, theTemplate, pageSettings, pageNumber);
-            console.log("PageDetails")
-            console.log(pageDetails);
-            jpegDetails = await ads.createJpegDetails(userPath, jsonAds, pageSettings, pageNumber);
-            console.log("Jpeg Details");
-            console.log(jpegDetails);
-          }
-          
+                    
           let renderDetails = await ads.createRenderDetails(userPath, jsonAds, theTemplate);
           console.log("Render Details");
           console.log(renderDetails);
@@ -846,20 +656,7 @@ async function getData(aeOnly){
           }  
   
 
-          let fullDetails = {};
-          if (!aeOnly){
-            fullDetails = background
-            fullDetails.pageDetails = pageDetails;
-            fullDetails.jpegDetails = jpegDetails;
-            fullDetails.renderDetails = renderDetails;
-            fullDetails.ppwgFilename = ppwgFilename;
-  
-            console.log("Full Details");
-            console.log(fullDetails);
-          }
-          
-          
-          let mediaFilenames = await ads.mediaFields(userPath, jsonAds, true);
+          let mediaFilenames = await ads.mediaFields(userPath, jsonAds, false);
           let missingFiles = ads.missingMediaFiles(mediaFilenames);
           let success = {};
           success.result = true;
@@ -870,33 +667,9 @@ async function getData(aeOnly){
           }
 
           if (doAfterEffects){
-            adsErrorList.innerText = 'Attempting to copy AE files'
-            let aeSuccess = await ads.copyAeMediaFiles(userPath, aeJson.media);
-            adsErrorList.innerText = aeSuccess.messages.join('\r\n')
             await ads.updateAeJobFile(aeJson.specials, theTemplate, renderDetails);
           }
-
-          if (success.result && !aeOnly){
-            let temp = await command.exportJpegFromFullDetails(fullDetails);
-            console.log(temp);
-            let myResult = dealWithAnyErrors(temp);
-            adsErrorList.innerText = myResult.message.join('\r\n')
-            if (!myResult.hasError){
-              await displayJpegADS(temp.theCommand.filenames);
-              let theResult = await renderMp4ADSfromFulldetails(fullDetails);
-              let finalMessages = []
-              if (theResult.result){
-                let copySuccess = await ads.copyMp4ToServer(theResult.fullFilename, jsonAds, serverSettings);
-                adsErrorList.innerText = copySuccess.message;
-                finalMessages.push(copySuccess.message);
-                if (copySuccess.result){
-                  let updateSuccess= await ads.sendFileQueuedToWebApp(theResult.filename, jsonAds, serverSettings);
-                  finalMessages.push(updateSuccess.message);
-                  adsErrorList.innerText = finalMessages.join('\r\n')
-                }
-              }
-            }
-          }
+        
         } else {
           adsErrorList.innerText = 'Failed to create ppwg file'
         } 

@@ -1,24 +1,5 @@
 const pageWorkDetailsFolderUNC ='\\\\alpaca\\dropbox\\Development\\Node\\StreamMasterHelper\\JSON\\'
 
-function fillListbox(pages){
-  let theSearch = document.querySelector(".search").value;
-  emptyListBox("pageChoice");
-  let select = document.getElementById("pageChoice");
-  for(let i = 0; i < pages.length; i++) {
-    let page = pages[i];
-    if (i==0){
-      let jsonFolder = document.getElementById("page-json-folder");
-      jsonFolder.value = page.folder
-    }
-    if (page.pageName.toLowerCase().includes(theSearch.toLowerCase())){
-      var element = document.createElement("option");
-      element.textContent = page.pageName
-      element.value = page.txPageNumber
-      select.appendChild(element);
-    }
-  }
-}
-
 async function getThePages(userPath){
   let pages = await command.getPageNumberAndNameDetails(theSettings.pageWorkDetailsFolderUNC);
   await settings.savePages(pages, userPath);
