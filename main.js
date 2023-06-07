@@ -1,4 +1,4 @@
-const {app, BrowserWindow, ipcMain, Menu, dialog} =  require('electron');
+const {app, BrowserWindow, ipcMain, Menu, MenuItem, dialog} =  require('electron');
 const path = require('path')
 
 let win = null;
@@ -26,6 +26,15 @@ const createWindow = () => {
     })
     const theMenu = Menu.buildFromTemplate(template);
     Menu.setApplicationMenu(theMenu);
+    const ctxMenu = new Menu();
+    ctxMenu.append(new MenuItem({
+      role: 'copy'
+    }))
+
+    win.webContents.on('context-menu', function(e,params){
+      ctxMenu.popup(win, params.x, params.y)
+    })
+
     console.log("I'm here");
     console.log(app.getPath("userData"));
     console.log("Done")
@@ -48,18 +57,6 @@ ipcMain.on("getSettings", () => {
   win.webContents.send("receiveSettings");  
 })
 
-ipcMain.on("refreshPages", () => {
-  refreshThePages();
-})
-
-function refreshThePages(){
-  win.webContents.send("refreshPages");
-}
-
-function reloadThePages(){
-  win.webContents.send("reloadPages");
-}
-
 function settings(){
   win.webContents.send("receiveSettings");
 }
@@ -69,9 +66,14 @@ const template = [
     label: 'File',
     submenu: [
       {label: 'Refresh Pages', click(){refreshThePages()}},
-      {label: 'Reload Pages from Disk', click(){reloadThePages()}},
       {label: 'Settings', click(){openSettingsWindow()}},
       {role: 'quit'}
+    ]
+  },
+  {
+    label: 'Edit',
+    submenu: [
+      {role: 'copy'}
     ]
   },
   {
