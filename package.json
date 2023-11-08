@@ -13,7 +13,9 @@
     "electron": "^17.4.11"
   },
   "dependencies": {
+    "@electron/remote": "^2.0.10",
     "@marsaud/smb2": "^0.18.0",
+    "adm-zip": "^0.5.10",
     "xml2js": "^0.4.23"
   },
   "repository": {

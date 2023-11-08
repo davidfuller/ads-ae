@@ -40,6 +40,9 @@ function timecodeStringToFrames(tc){
 
 function framesToTimecodeString(frames){
 
+  if (frames > 2160000){
+    frames = frames - 2160000
+  }
   let hours = Math.floor(frames/(60 * 60 * fps));
   let minutes = Math.floor((frames - (hours * 60 * 60 * fps))/(60 * fps));
   let seconds = Math.floor((frames - (hours * 60 * 60 * fps) - (minutes * 60 * fps))/fps)
