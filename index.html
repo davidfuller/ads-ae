@@ -2,76 +2,44 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>MuVi2 StreamMaster Generator</title>
+    <title>MuVi2 ADS After Effects Generator</title>
     <link rel="stylesheet" href="style.css">
     <script defer src="render.js"></script>
     <script defer src="listbox.js"></script>
 </head>
 <body>
-    <h1 id="clock"></h1><h1 id="status"></h1>
-    <div id="all-page-block">
-      <div id="my-video" style="display: none;">
-        <button id="toggle-video-jpeg" onclick="toggleVideo()">Show Jpeg</button>
-        <video id="my-player" controls autoplay>
-          <source src="" type="video/mp4">
+  <h1 id="clock"></h1><h1 id="status"></h1>
+  <div id="all-page-block">
+    <div id="ads-ae" style="display: block;">
+      <button id="ads-button" onclick="doTheLot()">Generate from Data</button>
+      <button id="ads-button-details" onclick="displayAdsAeDetails()">Show Details</button>
+      <button id="ads-button" onclick="readLogFile()">Test</button>
+      <label for="ads-periodic" id="ads-label">Periodically run</label>
+      <input type="checkbox" id="ads-periodic" onclick="setNextRun()">
+      <div id="ads-periodic-status"></div>
+    </div>
+    <div id="ads-ae-detail" style="display: none;">
+      <button id="ads-button" onclick="getData()">Get data</button>
+      <button id="ads-button" onclick="startAfterFX()">Run AfterFX</button>
+      <button id="ads-button" onclick="fileReady()">File Ready</button>
+    </div>
+    <div id="ads-common" style="display: block;">
+      <label for "server-choice" id="ads-label">Server</label>
+      <select name="server-choice" id="ads-server">
+        <option value="live">Live</option>
+        <option value="test">Test</option>
+      </select> 
+      <br/>
+      <h2 id="ads-heading">ADS Name:</h2>
+      <h2 id="ads-description"></h2>
+      <div id="ads-error-list">Status</div>
+      <div id ="ads-jpeg"></div>
+      <div id="ads-video" style="display: none;">
+        <video id="ads-player" controls autoplay>
+          <source src="" type="video/mov">
         </video>
       </div>
-      <div id="status-block" style="display:none">
-        <h2 id="num-errors"></h2>
-        <select name="generate-status" id="select-generate-status" size="10" onclick="displayError()">
-        </select>
-        <button id="render-jpegs" onclick="renderAllJpegs()">Render All Jpegs</button>
-        <div id="error-status"></div>
-        <button id="show-all-errors" style="display: none;" onclick="showAllErrors()">Show All Errors</button>
-        <div id="full-error-list" style="display: none;"></div>
-      </div>
-      <div id="the-rest" style="display: none;">
-        <input type="text" class="pageNo" placeholder="Page" onchange="playoutPageNumber()">
-        <button id="other-button" onclick="playoutPageNumber()">Playout Page No</button>
-        <button id="other-button" onclick="playoutPageNumberOverTest()">Playout Over Test</button>
-        <button id="other-button" onclick="showBlack()">Playout Black</button>
-        <button id="other-button" onclick="showTestSignal()">Playout Test Signal</button>
-        <button id="other-button" onclick="playoutPageWorkfileOverTest()">Playout Workfile Over Test</button>
-        <button id="other-button" onclick="playoutPageWorkfile()">Playout workfile</button>
-      </div>
-      <div id="ads" style="display: none;">
-        <button id="ads-button" onclick="playoutADS()">Playout ADS</button>
-        <button id="ads-button" onclick="renderMp4ADS()">Create mp4 ADS</button>
-        <button id="ads-button" onclick="playMp4ADS()">Play mp4 ADS</button>
-        <button id="ads-button" onclick="getData(false)">Get the data</button>
-        <button id="ads-button" onclick="getData(true)">Get the data (AE Only)</button>
-      </div>
-      <div id="ads-ae" style="display: block;">
-        <button id="ads-button" onclick="getData(true)">Get data</button>
-        <button id="ads-button" onclick="startAfterFX()">Run AfterFX</button>
-        <button id="ads-button" onclick="fileReady()">File Ready</button>
-      </div>
-      <div id="ads-common" style="display: block;">
-        <label for "server-choice" id="ads-label">Server</label>
-        <select name="server-choice" id="ads-server">
-          <option value="live">Live</option>
-          <option value="test">Test</option>
-        </select> 
-        <br/>
-        <h2 id="ads-heading">ADS Name:</h2>
-        <h2 id="ads-description"></h2>
-        <div id="ads-after-effects"></div><br/>
-        <div id="ads-aejson"></div><br/>
-        <div id="ads-url"></div>
-        <div id="ads-error-list">Status</div>
-        <div id ="ads-jpeg"></div>
-        <div id="ads-video" style="display: none;">
-          <video id="ads-player" controls autoplay>
-            <source src="" type="video/mov">
-          </video>
-        </div>
-      </div>
     </div>
-    
-    
-          
-    
-    
-
+  </div>
 </body>
 </html>

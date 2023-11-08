@@ -1,8 +1,7 @@
-const {app, BrowserWindow, ipcMain, Menu, MenuItem, dialog} =  require('electron');
+const {app, BrowserWindow, ipcMain, Menu, MenuItem, dialog, desktopCapturer} =  require('electron');
 const path = require('path')
 
 let win = null;
-
 
 const createWindow = () => {
     win = new BrowserWindow({
@@ -15,7 +14,8 @@ const createWindow = () => {
         enableRemoteModule: true
       }
     })
-  
+
+    require("@electron/remote/main").enable(win.webContents);
     win.loadFile('index.html');
     win.setBackgroundColor('rgb(50,50,50');
   }
@@ -56,6 +56,11 @@ ipcMain.on("getUserPath", (event, data) =>{
 ipcMain.on("getSettings", () => {
   win.webContents.send("receiveSettings");  
 })
+
+ipcMain.handle(
+  'DESKTOP_CAPTURER_GET_SOURCES',
+  (event, opts) => desktopCapturer.getSources(opts)
+)
 
 function settings(){
   win.webContents.send("receiveSettings");

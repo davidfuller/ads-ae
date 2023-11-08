@@ -115,13 +115,34 @@ async function parsedFieldData(userPath, jsonAds, isPrep){
   console.log('Machine Profile')
   console.log(machineProfile);
   let myFields = []
+  /*
   for (const thefield of jsonAds.media_files.item[0].fields){
     let temp = {}
     temp.fieldNumber = thefield.number[0];
     temp.value = thefield.value[0].replace("|-|","").trim().replace(machineProfile.webAppAssetsFolder, machineProfile.localAssetsFolder);
     myFields.push(temp);
   }
-  
+
+  myFields = [];
+  */
+  for (let i = 1; i <= 10; i++){
+    let found = false;
+    let temp = {};
+    for (const thefield of jsonAds.media_files.item[0].fields){
+      if (thefield.number[0] == i){
+        found = true;
+        console.log("Found")
+        temp.fieldNumber = thefield.number[0];
+        temp.value = thefield.value[0].replace("|-|","").trim().replace(machineProfile.webAppAssetsFolder, machineProfile.localAssetsFolder);
+        break;
+      }
+    }
+    if (!found){
+      temp.fieldNumber = i.toString();
+      temp.value = "";
+    }
+    myFields.push(temp);
+  }
   console.log("These are the fields");
   console.log(myFields);
   return myFields;
@@ -141,17 +162,15 @@ async function createAeJson(userPath, jsonAds, theTemplate, theSettings, renderD
       } else {
         fields[fieldName.name] = theFields[i].value;
       }
+    } else {
+      console.log("i: " + i);
+      console.log("fieldNumber:" + fieldNumber);
     }
   }
 
   console.log("JSON ADS")
   console.log(jsonAds)
-
-  let missing = missingAEFields(fields, theTemplate);
-
-  for (var i = 0; i < missing.length; i ++){
-    fields[missing[i].name] = "";
-  }
+  
   let jsonData = jsonAds.media_files.item[0];
   fields["name"] = jsonData.name[0];
 
@@ -165,14 +184,14 @@ async function createAeJson(userPath, jsonAds, theTemplate, theSettings, renderD
   }
 
   console.log('Sports IPP');
-  console.log('sports_ipp' in jsonData);
-
+  
   if ('sports_ipp' in jsonData){
     fields["sportsIpp"] = jsonAds.media_files.item[0].sports_ipp[0];
   } else {
     fields["sportsIpp"] = false;
   }
 
+  console.log(fields["sportsIpp"]);
 
   let dateString = new Date().toISOString().replace(/T|:|-/g, '_').substring(0, 19)
   fields["renderFilename"] = renderDetails.filePattern.replace('%d', dateString);
@@ -243,7 +262,37 @@ async function readAeJson(theSettings, theFilename){
   return specials;
 }
 
+async function readAeLogFile(theSettings){
+  let filename = theSettings.aeLogFilename;
+  let now = new Date;
+  let logFilenameWithDate = formatDate(now, filename);
+  let server = net.findMyServer(logFilenameWithDate);
+  server.ipShare = await net.getIPShare(server);
+  let myPath = net.findMyPath(logFilenameWithDate);
+  let logData = await net.readJson(server, myPath);
+  return logData;
+}
 
+function formatDate(theDate, theString){
+  var yearString = theDate.getFullYear().toString();
+  theString = theString.replace("YYYY", yearString);
+  var month = theDate.getMonth() + 1 ;
+  var monthString;
+  if (month < 10){
+    monthString = "0" + month.toString();
+  } else {
+    monthString = month.toString();
+  }
+  theString = theString.replace("MM",monthString);
+  var day = theDate.getDate();
+  var dayString;
+  if (day < 10){
+    dayString = "0" + day.toString();
+  } else {
+    dayString = day.toString();
+  }
+  return theString.replace("DD", dayString);
+}
 
 async function updateAeJobFile(specials, theTemplate, renderDetails){
   let filename = theSettings.aeJobFileUNC;
@@ -352,16 +401,15 @@ async function createRenderDetails(userPath, jsonAds, theTemplate){
 }
 
 async function mediaFields(userPath, jsonAds, isPrep){
-  let pageSettings = await readPageSettings(userPath);
+  let machineProfile = await readMachineProfile(userPath, 'pomatter');
   let myFields = await parsedFieldData(userPath, jsonAds, isPrep);
-  console.log(myFields);
   let mediaFilenames = [];
   for (let myField of myFields){
-    if (myField.value.toUpperCase().startsWith(pageSettings.createAssetsFolder.toUpperCase())){
+    if (myField.value.toUpperCase().startsWith(machineProfile.localAssetsFolder.toUpperCase())){
       mediaFilenames.push(myField.value);
     }
   }
-  console.log("Thesee are the media fields");
+  console.log("These are the media fields");
   console.log (mediaFilenames);
   return mediaFilenames;
 }
@@ -379,15 +427,15 @@ function missingMediaFiles(mediaFilenames){
 }
 
 async function copyMissingFiles(userPath, missingFiles, isTestServer){
-  let pageSettings = await readPageSettings(userPath);
+  let machineProfile = await readMachineProfile(userPath, 'pomatter');
   let result = true;
   let messages = [];
   let sourceFile;
   for (let destinationFile of missingFiles){
     if (isTestServer){
-      sourceFile = destinationFile.replace(pageSettings.createAssetsFolder, pageSettings.testSourceAssetsFolder);
+      sourceFile = destinationFile.replace(machineProfile.localAssetsFolder, machineProfile.testSourceAssetsFolder);
     } else {
-      sourceFile = destinationFile.replace(pageSettings.createAssetsFolder, pageSettings.sourceAssetsFolder);
+      sourceFile = destinationFile.replace(machineProfile.localAssetsFolder, machineProfile.sourceAssetsFolder);
     }
     
     console.log(sourceFile);
@@ -419,7 +467,7 @@ async function copyMp4ToServer(fullFilename, jsonAds, serverSettings){
     try{
       await fspromises.copyFile(fullFilename, destinationFile);
       console.log("Copied")
-      message = "Mp4 copied: " + jsonAds.media_files.item[0].filename[0];
+      message = "Mov copied: " + jsonAds.media_files.item[0].filename[0];
       result = true;
     } catch (e){
       console.log ("Not copied");
@@ -433,6 +481,32 @@ async function copyMp4ToServer(fullFilename, jsonAds, serverSettings){
   }
   return {result: result, message: message}
 }
+
+async function copyPackageToServer(fullFilename, serverSettings){
+  let result = false
+  let destinationFile = path.join(serverSettings.packageFolder, path.basename(fullFilename));
+  let message;
+  console.log (destinationFile);
+  if (fs.existsSync(fullFilename)){
+    try{
+      await fspromises.copyFile(fullFilename, destinationFile);
+      console.log("Copied")
+      message = "Package file copied to server: " + path.basename(fullFilename);
+      result = true;
+    } catch (e){
+      console.log ("Not copied");
+      message = "Error copying to server: " + path.basename(fullFilename);
+      result = false;
+    }
+  } else {
+    console.log("No source file");
+    message = "Cannot find source file: " + fullFilename;
+    result = false;
+  }
+  return {result: result, message: message}
+}
+
+
 
 async function sendFileQueuedToWebApp(originalFilename, jsonAds, serverSettings){
   let theUrl = serverSettings.queue_url.replace("|id|", jsonAds.media_files.item[0].id[0]).replace("|filename|", encodeURIComponent(originalFilename));
@@ -453,5 +527,27 @@ async function sendFileQueuedToWebApp(originalFilename, jsonAds, serverSettings)
   
 }
 
+async function sendPackageUploadedToWebApp(jsonAds,serverSettings){
+  let theUrl = serverSettings.packageUploadedUrl.replace("|id|", jsonAds.media_files.item[0].id[0]);
+  let myData;
+  let result;
+  let message;
+  try {
+    myData = await api.httpGet(theUrl);
+    let theXML = xmlToJson.parseXML(myData);
+    console.log (theXML);
+    let theStatus = theXML.sports_ipp_medias.item[0].status[0]
+    message = "Package updated in web app. Status: " + theStatus;
+    result = true
+  } catch (e) {
+    message = "Failed to update package in web app";
+    result = false;
+  }
+  
+  return {result: result, message: message};
+  
+}
+
 module.exports = {readBackground, readTemplates, findTemplate, parsedFieldData, createPPWG, createPageDetails, createJpegDetails, createRenderDetails, createPpwgFilename, readPageSettings, mediaFields, 
-  missingMediaFiles, copyMissingFiles, readServerSettings, sanitisedName, copyMp4ToServer, sendFileQueuedToWebApp, createAeJson, updateAeJobFile, readAeJson, specialName}
+  missingMediaFiles, copyMissingFiles, readServerSettings, sanitisedName, copyMp4ToServer, sendFileQueuedToWebApp, createAeJson, updateAeJobFile, readAeJson, specialName, copyPackageToServer, sendPackageUploadedToWebApp,
+  readAeLogFile}
