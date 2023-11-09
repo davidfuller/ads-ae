@@ -37,6 +37,7 @@ const createWindow = () => {
 
     console.log("I'm here");
     console.log(app.getPath("userData"));
+    console.log(process.platform);
     console.log("Done")
   })
 
