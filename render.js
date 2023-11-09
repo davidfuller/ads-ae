@@ -974,10 +974,10 @@ async function writeZip(){
 
 async function appendLog(message){
   if (message != '.'){
-    let logFolder = userPath + '\\logs\\';
+    let logFolder = path.join(userPath, 'logs');
     let now = new Date
     let logFilenameWithDate = formatDate(now, logFilename);
-    let myJsonFile = logFolder + logFilenameWithDate;
+    let myJsonFile = path.join(logFolder,logFilenameWithDate);
     let myJson = []
   
     if (!fs.existsSync(logFolder)){
