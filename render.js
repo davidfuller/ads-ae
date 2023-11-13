@@ -27,6 +27,7 @@ let aeName;
 let aeLog = [];
 let aeStartTime;
 let nextPeriodicRun = "";
+let isMac;
 
 const renderType = {
   preview: Symbol('preview'),
@@ -40,6 +41,7 @@ const renderType = {
 
 ipcRenderer.send("getUserPath");
 ipcRenderer.send("getSettings");
+ipcRenderer.send("getIsMac");
 
 
 ipcRenderer.on("receiveMessage", (event, data) => {
@@ -53,6 +55,10 @@ ipcRenderer.on("userPath", (event,data) => {
 
 ipcRenderer.on("receiveSettings", () => {
   getSettings();
+})
+
+ipcRenderer.on("isMac", (event, data) => {
+  isMac = data;
 })
 
 
@@ -670,6 +676,9 @@ async function getData(){
   console.log("Server choice");
   console.log(serverChoice.value);
   console.log(isTestServer);
+
+  console.log("IsMac");
+  console.log(isMac)
 
   let serverSettings = await ads.readServerSettings(userPath, serverChoice.value);
   let myData;

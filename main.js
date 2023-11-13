@@ -63,6 +63,10 @@ ipcMain.handle(
   (event, opts) => desktopCapturer.getSources(opts)
 )
 
+ipcMain.on("getIsMac", (event, data) => {
+  win.webContents.send("isMac", process.platform == 'darwin')
+})
+
 function settings(){
   win.webContents.send("receiveSettings");
 }
