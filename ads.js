@@ -397,6 +397,16 @@ async function createRenderDetails(userPath, jsonAds, theTemplate){
   renderDetails.aeProResFilename = sanitisedName(jsonAds) + ".mov"
   renderDetails.textFilename = sanitisedName(jsonAds) + ".txt"
  
+  //To do platform stuf
+  if (isMac){
+    renderDetails.aeRenderFolder = renderSettings.macRootFolder + renderSettings.aeRenderSubFolder + '/';
+    renderDetails.aePackageFolder = renderSettings.macRootFolder + renderSettings.aePackageSubFolder + '/';
+    renderDetails.aeProResFolder = renderSettings.macRootFolder + renderSettings.aeProResSubFolder + '/';
+  } else {
+    renderDetails.aeRenderFolder = renderSettings.windowsRootFolder + renderSettings.aeRenderSubFolder + '\\';
+    renderDetails.aePackageFolder = renderSettings.windowsRootFolder + renderSettings.aePackageSubFolder + '\\';
+    renderDetails.aeProResFolder = renderSettings.windowsRootFolder + renderSettings.aeProResSubFolder + '\\';
+  }
   return renderDetails;
 }
 
